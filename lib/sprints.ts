@@ -8,6 +8,7 @@ import {
   query,
   serverTimestamp,
   Timestamp,
+  updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
@@ -124,6 +125,107 @@ export async function getLastRevealedSprint(teamId: string): Promise<Sprint | nu
   if (snap.empty) return null;
   const d = snap.docs[0];
   return { id: d.id, ...(d.data() as Omit<Sprint, 'id'>) };
+}
+
+// ─── 공개 (Reveal) ────────────────────────────────────────────────────────────
+
+export interface RevealCheckResult {
+  canReveal: boolean;
+  unpraised: string[]; // 칭찬 미작성 멤버 userId 목록
+}
+
+/** 공개 가능 여부 확인 — pairs 순회 후 praise 미작성 manitoId 목록 반환 */
+export async function checkRevealEligibility(sprintId: string): Promise<RevealCheckResult> {
+  const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
+  const pairs = pairsSnap.docs.map((d) => d.data() as { manitoId: string; targetId: string });
+
+  const results = await Promise.all(
+    pairs.map(async ({ manitoId }) => {
+      const praisesSnap = await getDocs(
+        query(
+          collection(db, 'praises'),
+          where('sprintId', '==', sprintId),
+          where('fromUserId', '==', manitoId),
+        ),
+      );
+      return { manitoId, hasPraised: !praisesSnap.empty };
+    }),
+  );
+
+  const unpraised = results.filter((r) => !r.hasPraised).map((r) => r.manitoId);
+  return { canReveal: unpraised.length === 0, unpraised };
+}
+
+/** 스프린트 공개 (status → REVEALED) */
+export async function revealSprint(sprintId: string): Promise<void> {
+  await updateDoc(doc(db, 'sprints', sprintId), { status: 'REVEALED' });
+}
+
+/** 공개된 스프린트 전체 데이터 조회 (결과 화면용) */
+export interface RevealPair {
+  manitoId: string;
+  targetId: string;
+  manitoName: string;
+  targetName: string;
+  praises: Array<{ content: string; categories: string[]; createdAt: Timestamp | null }>;
+}
+
+export interface RevealData {
+  sprint: Sprint;
+  pairs: RevealPair[];
+  totalPraises: number;
+}
+
+export async function getRevealData(sprintId: string): Promise<RevealData | null> {
+  // 스프린트 조회
+  const sprintSnap = await getDocs(
+    query(collection(db, 'sprints'), where('__name__', '==', sprintId)),
+  );
+  // 직접 doc 조회
+  const { getDoc } = await import('firebase/firestore');
+  const sprintDoc = await getDoc(doc(db, 'sprints', sprintId));
+  if (!sprintDoc.exists()) return null;
+  const sprint = { id: sprintDoc.id, ...(sprintDoc.data() as Omit<Sprint, 'id'>) };
+
+  if (sprint.status !== 'REVEALED' && sprint.status !== 'CLOSED') return null;
+
+  // pairs 조회
+  const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
+  const rawPairs = pairsSnap.docs.map((d) => d.data() as { manitoId: string; targetId: string });
+
+  // 모든 userId 수집 → 일괄 유저 조회
+  const allUids = [...new Set(rawPairs.flatMap((p) => [p.manitoId, p.targetId]))];
+  const { getUserProfile } = await import('@/lib/users');
+  const profileMap = new Map<string, string>();
+  await Promise.all(
+    allUids.map(async (uid) => {
+      const p = await getUserProfile(uid);
+      profileMap.set(uid, p?.name ?? '알 수 없음');
+    }),
+  );
+
+  // 칭찬 조회
+  const praisesSnap = await getDocs(
+    query(collection(db, 'praises'), where('sprintId', '==', sprintId), orderBy('createdAt', 'asc')),
+  );
+  const allPraises = praisesSnap.docs.map((d) => ({
+    fromUserId: d.data().fromUserId as string,
+    content: d.data().content as string,
+    categories: d.data().categories as string[],
+    createdAt: d.data().createdAt as Timestamp | null,
+  }));
+
+  const pairs: RevealPair[] = rawPairs.map((p) => ({
+    manitoId: p.manitoId,
+    targetId: p.targetId,
+    manitoName: profileMap.get(p.manitoId) ?? '알 수 없음',
+    targetName: profileMap.get(p.targetId) ?? '알 수 없음',
+    praises: allPraises
+      .filter((pr) => pr.fromUserId === p.manitoId)
+      .map(({ content, categories, createdAt }) => ({ content, categories, createdAt })),
+  }));
+
+  return { sprint, pairs, totalPraises: allPraises.length };
 }
 
 /** 내 마니또 배정 조회 (내가 칭찬해야 할 대상) */

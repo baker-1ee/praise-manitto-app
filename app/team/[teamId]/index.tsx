@@ -25,11 +25,14 @@ import {
   Team,
 } from '@/lib/teams';
 import {
+  checkRevealEligibility,
   createSprint,
   formatSprintDate,
   getTeamSprints,
+  revealSprint,
   Sprint,
 } from '@/lib/sprints';
+import { getUserProfile } from '@/lib/users';
 import { Avatar } from '@/components/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -51,6 +54,7 @@ export default function TeamManageScreen() {
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [revealing, setRevealing] = useState(false);
 
   // 스프린트 생성 폼
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -110,6 +114,46 @@ export default function TeamManageScreen() {
         },
       },
     ]);
+  };
+
+  const handleReveal = async () => {
+    if (!activeSprint) return;
+    setRevealing(true);
+    try {
+      const { canReveal, unpraised } = await checkRevealEligibility(activeSprint.id);
+      if (!canReveal) {
+        // 미작성 멤버 이름 조회
+        const names = await Promise.all(unpraised.map(async (uid) => {
+          const p = await getUserProfile(uid);
+          return p?.name ?? uid;
+        }));
+        Alert.alert(
+          '공개 불가 🚫',
+          `아직 칭찬을 작성하지 않은 팀원이 있어요:\n\n${names.map((n) => `• ${n}`).join('\n')}\n\n모든 팀원이 칭찬을 작성해야 공개할 수 있습니다.`,
+          [{ text: '확인' }],
+        );
+        return;
+      }
+      Alert.alert(
+        '마니또 공개',
+        '스프린트를 공개하면 모든 마니또 관계가 공개됩니다. 계속할까요?',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '공개하기 🎉',
+            onPress: async () => {
+              await revealSprint(activeSprint.id);
+              loadData();
+              router.push(`/reveal/${activeSprint.id}`);
+            },
+          },
+        ],
+      );
+    } catch {
+      Alert.alert('오류', '공개 처리 중 오류가 발생했습니다.');
+    } finally {
+      setRevealing(false);
+    }
   };
 
   const handleLeave = () => {
@@ -209,6 +253,17 @@ export default function TeamManageScreen() {
               {!activeSprint && (
                 <TouchableOpacity onPress={() => setShowCreateForm((v) => !v)}>
                   <Text style={styles.sectionAction}>{showCreateForm ? '취소' : '+ 새 스프린트'}</Text>
+                </TouchableOpacity>
+              )}
+              {activeSprint && (
+                <TouchableOpacity
+                  style={styles.revealBtn}
+                  onPress={handleReveal}
+                  disabled={revealing}
+                >
+                  {revealing
+                    ? <ActivityIndicator size={14} color={AppColors.white} />
+                    : <Text style={styles.revealBtnText}>공개하기 🎉</Text>}
                 </TouchableOpacity>
               )}
             </View>
@@ -446,6 +501,13 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.primaryLight,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
   },
+
+  // 공개 버튼
+  revealBtn: {
+    backgroundColor: AppColors.primary, borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  revealBtnText: { fontSize: 13, fontWeight: '700', color: AppColors.white },
 
   // 팀 나가기
   leaveSection: { marginTop: 16 },
