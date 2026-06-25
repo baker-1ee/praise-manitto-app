@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -25,52 +26,72 @@ import {
   subscribeToActiveSprint,
 } from '@/lib/sprints';
 import { getUserProfile, UserProfile } from '@/lib/users';
+import {
+  getPraiseStats,
+  hasNudgedToday,
+  recordNudge,
+} from '@/lib/praises';
 
 export default function HomeScreen() {
   const { profile, user } = useAuth();
   const { myTeams, selectedTeam, selectedTeamId, setSelectedTeam } = useTeam();
 
-  const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined); // undefined = 로딩
+  const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
   const [myPair, setMyPair] = useState<ManitoPair | null>(null);
   const [targetProfile, setTargetProfile] = useState<UserProfile | null>(null);
   const [lastRevealedSprint, setLastRevealedSprint] = useState<Sprint | null>(null);
+  const [stats, setStats] = useState({ sent: 0, received: 0 });
+  const [nudging, setNudging] = useState(false);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
 
   // 팀 변경 시 스프린트 구독
   useEffect(() => {
     if (!selectedTeamId) { setActiveSprint(null); return; }
-
-    setActiveSprint(undefined); // 로딩 초기화
+    setActiveSprint(undefined);
     setMyPair(null);
     setTargetProfile(null);
     setLastRevealedSprint(null);
-
+    setStats({ sent: 0, received: 0 });
     const unsub = subscribeToActiveSprint(selectedTeamId, (sprint) => {
       setActiveSprint(sprint);
     });
     return unsub;
   }, [selectedTeamId]);
 
-  // 활성 스프린트 변경 시 마니또 쌍 조회
+  // 활성 스프린트 변경 시 데이터 로드
   useEffect(() => {
     if (!user || activeSprint === undefined) return;
-
     if (!activeSprint) {
-      // 직전 공개 스프린트 조회
-      if (selectedTeamId) {
-        getLastRevealedSprint(selectedTeamId).then(setLastRevealedSprint);
-      }
+      if (selectedTeamId) getLastRevealedSprint(selectedTeamId).then(setLastRevealedSprint);
       return;
     }
-
     getMyPair(activeSprint.id, user.uid).then(setMyPair);
-  }, [activeSprint, user?.uid]);
+    getPraiseStats(activeSprint.id, user.uid).then(setStats);
+  }, [activeSprint?.id, user?.uid]);
 
-  // 마니또 대상 프로필 조회
+  // 마니또 대상 프로필
   useEffect(() => {
     if (!myPair?.targetId) { setTargetProfile(null); return; }
     getUserProfile(myPair.targetId).then(setTargetProfile);
   }, [myPair?.targetId]);
+
+  const handleNudge = async () => {
+    if (!activeSprint || !user || !myPair) return;
+    const alreadyNudged = await hasNudgedToday(activeSprint.id, user.uid);
+    if (alreadyNudged) {
+      Alert.alert('오늘 이미 조른 적 있어요 😅', '내일 다시 시도해주세요!');
+      return;
+    }
+    setNudging(true);
+    try {
+      await recordNudge({ sprintId: activeSprint.id, requesterId: user.uid, toUserId: myPair.targetId });
+      Alert.alert('조르기 완료! 🥺', '마니또에게 칭찬을 기다리고 있다고 전달했어요.');
+    } catch {
+      Alert.alert('오류', '조르기에 실패했습니다.');
+    } finally {
+      setNudging(false);
+    }
+  };
 
   const isLoading = activeSprint === undefined;
 
@@ -87,8 +108,6 @@ export default function HomeScreen() {
               <Text style={styles.helloSub}>오늘도 팀원을 칭찬해보세요!</Text>
             </View>
           </View>
-
-          {/* 팀 선택 (2개 이상일 때만 표시) */}
           {myTeams.length > 1 && (
             <TouchableOpacity style={styles.teamSelector} onPress={() => setShowTeamPicker(true)}>
               <Text style={styles.teamSelectorText}>{selectedTeam?.name ?? '팀 선택'}</Text>
@@ -97,11 +116,8 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* 로딩 */}
         {isLoading && (
-          <View style={styles.center}>
-            <ActivityIndicator color={AppColors.primary} />
-          </View>
+          <View style={styles.center}><ActivityIndicator color={AppColors.primary} /></View>
         )}
 
         {/* 활성 스프린트 있음 */}
@@ -123,12 +139,37 @@ export default function HomeScreen() {
             {/* 마니또 카드 */}
             <ManitoCard target={targetProfile} />
 
+            {/* 칭찬 통계 */}
+            <View style={styles.statsRow}>
+              <TouchableOpacity
+                style={styles.statCard}
+                onPress={() => router.push('/(tabs)/praises')}
+              >
+                <Text style={styles.statNumber}>{stats.sent}</Text>
+                <Text style={styles.statLabel}>내가 보낸 칭찬</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.statCard}
+                onPress={() => router.push('/(tabs)/praises')}
+              >
+                <Text style={styles.statNumber}>{stats.received}</Text>
+                <Text style={styles.statLabel}>내가 받은 칭찬</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* CTA 버튼 */}
-            <TouchableOpacity
-              style={styles.praiseButton}
-              onPress={() => router.push('/praise/write')}
-            >
+            <TouchableOpacity style={styles.praiseButton} onPress={() => router.push('/praise/write')}>
               <Text style={styles.praiseButtonText}>✍️  칭찬 쓰기</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.nudgeButton}
+              onPress={handleNudge}
+              disabled={nudging}
+            >
+              {nudging
+                ? <ActivityIndicator size="small" color={AppColors.primary} />
+                : <Text style={styles.nudgeButtonText}>🥺  마니또에게 칭찬 조르기</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -137,7 +178,6 @@ export default function HomeScreen() {
         {!isLoading && !activeSprint && (
           <View style={styles.emptySection}>
             {lastRevealedSprint ? (
-              /* 직전 공개 스프린트 카드 */
               <TouchableOpacity
                 style={styles.revealedCard}
                 onPress={() => router.push(`/reveal/${lastRevealedSprint.id}`)}
@@ -150,7 +190,6 @@ export default function HomeScreen() {
                 </View>
               </TouchableOpacity>
             ) : (
-              /* 스프린트 완전 없음 */
               <View style={styles.noSprintCard}>
                 <Text style={styles.noSprintEmoji}>😴</Text>
                 <Text style={styles.noSprintTitle}>진행 중인 스프린트가 없어요</Text>
@@ -189,76 +228,64 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fafafa' },
   scroll: { paddingBottom: 32 },
-
-  // 헤더
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8, gap: 12 },
   greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   helloText: { fontSize: 17, fontWeight: '700', color: AppColors.textPrimary, letterSpacing: -0.3 },
   helloSub: { fontSize: 13, color: AppColors.textMuted, marginTop: 2 },
   teamSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: AppColors.primaryLight,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start', backgroundColor: AppColors.primaryLight,
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6,
   },
   teamSelectorText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
   teamSelectorArrow: { fontSize: 12, color: AppColors.primary },
-
-  // 로딩
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
-
-  // 스프린트 섹션
-  sprintSection: { paddingHorizontal: 20, paddingTop: 16, gap: 16 },
+  sprintSection: { paddingHorizontal: 20, paddingTop: 8, gap: 14 },
   sprintHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sprintInfo: { gap: 2 },
   sprintName: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary, letterSpacing: -0.3 },
   sprintDate: { fontSize: 12, color: AppColors.textMuted },
-  activeBadge: {
-    backgroundColor: '#dcfce7',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
+  activeBadge: { backgroundColor: '#dcfce7', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   activeBadgeText: { fontSize: 12, fontWeight: '600', color: '#16a34a' },
 
-  // 칭찬 쓰기 버튼
+  // 통계
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statCard: {
+    flex: 1, backgroundColor: AppColors.white, borderRadius: 14,
+    borderWidth: 1, borderColor: AppColors.borderLight,
+    padding: 16, alignItems: 'center', gap: 4,
+  },
+  statNumber: { fontSize: 28, fontWeight: '800', color: AppColors.primary, letterSpacing: -1 },
+  statLabel: { fontSize: 12, color: AppColors.textMuted, fontWeight: '500' },
+
+  // CTA
   praiseButton: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 12,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: AppColors.primary, borderRadius: 12,
+    height: 50, alignItems: 'center', justifyContent: 'center',
   },
   praiseButtonText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  nudgeButton: {
+    borderRadius: 12, height: 46,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: AppColors.border,
+    backgroundColor: AppColors.white,
+  },
+  nudgeButtonText: { fontSize: 15, fontWeight: '600', color: AppColors.textMuted },
 
   // 빈 상태
-  emptySection: { paddingHorizontal: 20, paddingTop: 16 },
+  emptySection: { paddingHorizontal: 20, paddingTop: 8 },
   revealedCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: AppColors.white,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: AppColors.borderLight,
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    backgroundColor: AppColors.white, borderRadius: 16, padding: 20,
+    borderWidth: 1, borderColor: AppColors.borderLight,
   },
   revealedEmoji: { fontSize: 36 },
   revealedInfo: { flex: 1, gap: 4 },
   revealedTitle: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary },
   revealedSub: { fontSize: 13, color: AppColors.textMuted },
   noSprintCard: {
-    backgroundColor: AppColors.white,
-    borderRadius: 16,
-    padding: 32,
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: AppColors.borderLight,
+    backgroundColor: AppColors.white, borderRadius: 16, padding: 32,
+    alignItems: 'center', gap: 8, borderWidth: 1, borderColor: AppColors.borderLight,
   },
   noSprintEmoji: { fontSize: 48, marginBottom: 4 },
   noSprintTitle: { fontSize: 16, fontWeight: '600', color: AppColors.textPrimary },
@@ -267,22 +294,13 @@ const styles = StyleSheet.create({
   // 팀 선택 모달
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   pickerSheet: {
-    backgroundColor: AppColors.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingBottom: 36,
-    paddingHorizontal: 20,
-    gap: 4,
+    backgroundColor: AppColors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingTop: 20, paddingBottom: 36, paddingHorizontal: 20, gap: 4,
   },
   pickerTitle: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary, marginBottom: 8 },
   pickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12,
   },
   pickerItemActive: { backgroundColor: AppColors.primaryLight },
   pickerItemText: { flex: 1, fontSize: 15, color: AppColors.textPrimary, fontWeight: '500' },

@@ -1,31 +1,198 @@
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useAuth } from '@/contexts/auth-context';
+import { useTeam } from '@/contexts/team-context';
+import { subscribeToActiveSprint, Sprint } from '@/lib/sprints';
+import {
+  Praise,
+  subscribeToReceivedPraises,
+  subscribeToSentPraises,
+} from '@/lib/praises';
 import { AppColors } from '@/constants/theme';
 
+type Tab = 'sent' | 'received';
+
 export default function PraisesScreen() {
+  const { user } = useAuth();
+  const { selectedTeamId } = useTeam();
+
+  const [activeTab, setActiveTab] = useState<Tab>('sent');
+  const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
+  const [sentPraises, setSentPraises] = useState<Praise[]>([]);
+  const [receivedPraises, setReceivedPraises] = useState<Praise[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 활성 스프린트 구독
+  useEffect(() => {
+    if (!selectedTeamId) { setActiveSprint(null); setLoading(false); return; }
+    const unsub = subscribeToActiveSprint(selectedTeamId, (s) => {
+      setActiveSprint(s);
+      setLoading(false);
+    });
+    return unsub;
+  }, [selectedTeamId]);
+
+  // 보낸 칭찬 구독
+  useEffect(() => {
+    if (!activeSprint || !user) { setSentPraises([]); return; }
+    const unsub = subscribeToSentPraises(activeSprint.id, user.uid, setSentPraises);
+    return unsub;
+  }, [activeSprint?.id, user?.uid]);
+
+  // 받은 칭찬 구독
+  useEffect(() => {
+    if (!activeSprint || !user) { setReceivedPraises([]); return; }
+    const unsub = subscribeToReceivedPraises(activeSprint.id, user.uid, setReceivedPraises);
+    return unsub;
+  }, [activeSprint?.id, user?.uid]);
+
+  const list = activeTab === 'sent' ? sentPraises : receivedPraises;
+  const isRevealed = activeSprint?.status === 'REVEALED' || activeSprint?.status === 'CLOSED';
+
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      {/* 헤더 */}
+      <View style={styles.header}>
         <Text style={styles.title}>칭찬</Text>
-        <View style={styles.placeholder}>
-          <Text style={styles.emoji}>💬</Text>
-          <Text style={styles.text}>Phase 4에서 구현 예정입니다</Text>
-        </View>
       </View>
+
+      {/* 탭 */}
+      <View style={styles.tabs}>
+        {(['sent', 'received'] as Tab[]).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'sent' ? `보낸 칭찬 ${sentPraises.length}` : `받은 칭찬 ${receivedPraises.length}`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {loading ? (
+        <View style={styles.center}><ActivityIndicator color={AppColors.primary} /></View>
+      ) : !activeSprint ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyEmoji}>💬</Text>
+          <Text style={styles.emptyText}>진행 중인 스프린트가 없어요</Text>
+        </View>
+      ) : list.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyEmoji}>{activeTab === 'sent' ? '✍️' : '💌'}</Text>
+          <Text style={styles.emptyText}>
+            {activeTab === 'sent' ? '아직 보낸 칭찬이 없어요' : '아직 받은 칭찬이 없어요'}
+          </Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+          {list.map((praise) => (
+            <PraiseCard
+              key={praise.id}
+              praise={praise}
+              tab={activeTab}
+              isRevealed={isRevealed}
+            />
+          ))}
+        </ScrollView>
+      )}
     </SafeAreaView>
+  );
+}
+
+function PraiseCard({ praise, tab, isRevealed }: {
+  praise: Praise;
+  tab: Tab;
+  isRevealed: boolean;
+}) {
+  const date = praise.createdAt?.toDate();
+  const dateStr = date
+    ? `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+    : '';
+
+  return (
+    <View style={styles.card}>
+      {/* 발신자 (받은 칭찬: 공개 전 익명) */}
+      {tab === 'received' && (
+        <View style={styles.cardFrom}>
+          <View style={styles.anonymousDot} />
+          <Text style={styles.cardFromText}>
+            {isRevealed ? '마니또' : '익명의 팀원'}
+          </Text>
+        </View>
+      )}
+
+      {/* 칭찬 내용 */}
+      <Text style={styles.cardContent}>"{praise.content}"</Text>
+
+      {/* 카테고리 + 날짜 */}
+      <View style={styles.cardFooter}>
+        <View style={styles.categoryChips}>
+          {praise.categories.map((cat) => (
+            <View key={cat} style={styles.chip}>
+              <Text style={styles.chipText}>{cat}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.cardDate}>{dateStr}</Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fafafa' },
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 8 },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: AppColors.textPrimary,
-    paddingVertical: 16,
+  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
+  title: { fontSize: 22, fontWeight: '800', color: AppColors.textPrimary },
+
+  // 탭
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: 20, marginTop: 12, marginBottom: 8,
+    backgroundColor: AppColors.primaryLight,
+    borderRadius: 12, padding: 4,
   },
-  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emoji: { fontSize: 48 },
-  text: { fontSize: 15, color: AppColors.textMuted },
+  tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+  tabActive: { backgroundColor: AppColors.white },
+  tabText: { fontSize: 14, fontWeight: '600', color: AppColors.textMuted },
+  tabTextActive: { color: AppColors.primary },
+
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  emptyEmoji: { fontSize: 44 },
+  emptyText: { fontSize: 15, color: AppColors.textMuted },
+
+  list: { padding: 20, gap: 12, paddingBottom: 32 },
+  card: {
+    backgroundColor: AppColors.white, borderRadius: 14,
+    borderWidth: 1, borderColor: AppColors.borderLight,
+    padding: 16, gap: 10,
+  },
+  cardFrom: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  anonymousDot: {
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: AppColors.primary,
+  },
+  cardFromText: { fontSize: 13, fontWeight: '600', color: AppColors.primary },
+  cardContent: {
+    fontSize: 15, color: AppColors.textPrimary,
+    lineHeight: 23, fontStyle: 'italic',
+  },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  categoryChips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 },
+  chip: {
+    backgroundColor: AppColors.primaryLight, borderRadius: 20,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  chipText: { fontSize: 11, fontWeight: '600', color: AppColors.primary },
+  cardDate: { fontSize: 11, color: AppColors.textSecondary },
 });
