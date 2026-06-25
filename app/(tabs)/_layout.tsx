@@ -42,6 +42,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="sprints"
+        options={{
+          title: '스프린트',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="flag.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="teams"
         options={{
           title: '팀',

@@ -27,6 +27,7 @@ const MAPPING = {
   'eye': 'visibility',
   'eye.slash': 'visibility-off',
   'arrow.right.square': 'logout',
+  'flag.fill': 'flag',
 } as IconMapping;
 
 /**

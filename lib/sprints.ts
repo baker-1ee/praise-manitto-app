@@ -101,6 +101,20 @@ export function subscribeToActiveSprint(
   });
 }
 
+/** 팀 스프린트 목록 실시간 구독 (최신순) */
+export function subscribeToTeamSprints(
+  teamId: string,
+  callback: (sprints: Sprint[]) => void,
+): () => void {
+  const q = query(collection(db, 'sprints'), where('teamId', '==', teamId));
+  return onSnapshot(q, (snap) => {
+    const sprints = snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
+      .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+    callback(sprints);
+  });
+}
+
 /** 팀 스프린트 목록 (최신순) — 클라이언트 정렬 */
 export async function getTeamSprints(teamId: string): Promise<Sprint[]> {
   const snap = await getDocs(
