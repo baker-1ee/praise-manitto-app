@@ -13,11 +13,16 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
 import { subscribeToActiveSprint, Sprint } from '@/lib/sprints';
 import {
+  getDocs, collection, query, where, orderBy,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import {
   Praise,
   subscribeToReceivedPraises,
   subscribeToSentPraises,
 } from '@/lib/praises';
 import { AppColors } from '@/constants/theme';
+import { PraiseCardSkeleton } from '@/components/ui/skeleton';
 
 type Tab = 'sent' | 'received';
 
@@ -41,19 +46,41 @@ export default function PraisesScreen() {
     return unsub;
   }, [selectedTeamId]);
 
-  // 보낸 칭찬 구독
+  // 보낸 칭찬 구독 (활성 스프린트 있으면 스프린트 기준, 없으면 팀 전체 내역)
   useEffect(() => {
-    if (!activeSprint || !user) { setSentPraises([]); return; }
-    const unsub = subscribeToSentPraises(activeSprint.id, user.uid, setSentPraises);
-    return unsub;
-  }, [activeSprint?.id, user?.uid]);
+    if (!user || !selectedTeamId) { setSentPraises([]); return; }
+    if (activeSprint) {
+      const unsub = subscribeToSentPraises(activeSprint.id, user.uid, setSentPraises);
+      return unsub;
+    }
+    // 스프린트 없을 때 팀 전체 보낸 칭찬
+    getDocs(query(
+      collection(db, 'praises'),
+      where('teamId', '==', selectedTeamId),
+      where('fromUserId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+    )).then((snap) => {
+      setSentPraises(snap.docs.map((d) => ({ id: d.id, ...d.data() as Omit<Praise, 'id'> })));
+    });
+  }, [activeSprint?.id, user?.uid, selectedTeamId]);
 
-  // 받은 칭찬 구독
+  // 받은 칭찬 구독 (활성 스프린트 있으면 스프린트 기준, 없으면 팀 전체 내역)
   useEffect(() => {
-    if (!activeSprint || !user) { setReceivedPraises([]); return; }
-    const unsub = subscribeToReceivedPraises(activeSprint.id, user.uid, setReceivedPraises);
-    return unsub;
-  }, [activeSprint?.id, user?.uid]);
+    if (!user || !selectedTeamId) { setReceivedPraises([]); return; }
+    if (activeSprint) {
+      const unsub = subscribeToReceivedPraises(activeSprint.id, user.uid, setReceivedPraises);
+      return unsub;
+    }
+    // 스프린트 없을 때 팀 전체 받은 칭찬
+    getDocs(query(
+      collection(db, 'praises'),
+      where('teamId', '==', selectedTeamId),
+      where('toUserId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+    )).then((snap) => {
+      setReceivedPraises(snap.docs.map((d) => ({ id: d.id, ...d.data() as Omit<Praise, 'id'> })));
+    });
+  }, [activeSprint?.id, user?.uid, selectedTeamId]);
 
   const list = activeTab === 'sent' ? sentPraises : receivedPraises;
   const isRevealed = activeSprint?.status === 'REVEALED' || activeSprint?.status === 'CLOSED';
@@ -81,12 +108,9 @@ export default function PraisesScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={AppColors.primary} /></View>
-      ) : !activeSprint ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>💬</Text>
-          <Text style={styles.emptyText}>진행 중인 스프린트가 없어요</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3].map((i) => <PraiseCardSkeleton key={i} />)}
+        </ScrollView>
       ) : list.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.emptyEmoji}>{activeTab === 'sent' ? '✍️' : '💌'}</Text>
