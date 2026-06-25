@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
@@ -34,13 +34,12 @@ function RootNavigator() {
   const { myTeams, loading: teamLoading } = useTeam();
   const segments = useSegments();
   const router = useRouter();
-  // Expo Router: 네비게이터가 완전히 마운트된 뒤에만 이동
   const navigationState = useRootNavigationState();
 
   const loading = authLoading || (!!user && teamLoading);
 
   useEffect(() => {
-    // 네비게이터 미준비 또는 데이터 로딩 중이면 대기
+    // 네비게이터 미준비 또는 로딩 중이면 대기
     if (!navigationState?.key || loading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
@@ -61,29 +60,42 @@ function RootNavigator() {
     }
   }, [navigationState?.key, user, loading, myTeams.length, segments]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={AppColors.primary} />
-      </View>
-    );
-  }
-
+  // Stack은 항상 렌더링 — 언마운트되면 라우트가 네비게이터에서 제거되어
+  // router.replace('/(onboarding)') 호출 시 "not handled" 에러 발생
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="team/[teamId]/index"
-        options={{
-          headerShown: true,
-          headerTintColor: AppColors.primary,
-          headerBackTitle: '팀',
-          headerShadowVisible: false,
-          headerStyle: { backgroundColor: '#fafafa' },
-        }}
-      />
-    </Stack>
+    <View style={styles.root}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="team/[teamId]/index"
+          options={{
+            headerShown: true,
+            headerTintColor: AppColors.primary,
+            headerBackTitle: '팀',
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: '#fafafa' },
+          }}
+        />
+      </Stack>
+
+      {/* 로딩 오버레이 — Stack 위에 얹어서 라우트 등록 유지 */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={AppColors.primary} />
+        </View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
