@@ -119,6 +119,7 @@ export async function joinTeamByCode(userId: string, code: string): Promise<stri
 export function subscribeToMyMemberships(
   userId: string,
   callback: (memberships: Membership[]) => void,
+  onError?: (error: Error) => void,
 ): () => void {
   const q = query(collection(db, 'memberships'), where('userId', '==', userId));
   return onSnapshot(q, (snap) => {
@@ -128,7 +129,7 @@ export function subscribeToMyMemberships(
         ...(d.data() as Omit<Membership, 'id'>),
       })),
     );
-  });
+  }, onError);
 }
 
 /** 팀 단건 조회 */

@@ -90,7 +90,7 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
           return validTeams[0]?.id ?? null;
         });
       }
-    });
+    }, () => setLoading(false));
 
     return unsub;
   }, [user?.uid]);

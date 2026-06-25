@@ -52,10 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Firestore 프로필 실시간 구독 (로그인 상태일 때만)
   useEffect(() => {
     if (!user) return;
-    const unsub = subscribeToUserProfile(user.uid, (p) => {
-      setProfile(p);
-      setLoading(false);
-    });
+    const unsub = subscribeToUserProfile(
+      user.uid,
+      (p) => {
+        setProfile(p);
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
     return unsub;
   }, [user?.uid]);
 

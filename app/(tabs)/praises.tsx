@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
 import { subscribeToActiveSprint, Sprint } from '@/lib/sprints';
-import { getDocs, collection, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import {
   Praise,
   subscribeToReceivedPraises,
@@ -21,22 +20,33 @@ import {
 } from '@/lib/praises';
 import { AppColors } from '@/constants/theme';
 import { PraiseCardSkeleton } from '@/components/ui/skeleton';
+import { Avatar } from '@/components/avatar';
 
 type Tab = 'sent' | 'received';
 
 export default function PraisesScreen() {
   const { user } = useAuth();
-  const { selectedTeamId } = useTeam();
+  const { myTeams, selectedTeam, selectedTeamId, setSelectedTeam } = useTeam();
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
 
   const [activeTab, setActiveTab] = useState<Tab>('sent');
   const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
   const [sentPraises, setSentPraises] = useState<Praise[]>([]);
   const [receivedPraises, setReceivedPraises] = useState<Praise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTeamPicker, setShowTeamPicker] = useState(false);
 
-  // 활성 스프린트 구독
+  // tabParam 변경 시 탭 전환
+  useEffect(() => {
+    if (tabParam === 'received') setActiveTab('received');
+    else if (tabParam === 'sent') setActiveTab('sent');
+  }, [tabParam]);
+
+  // 팀 변경 시 활성 스프린트 구독
   useEffect(() => {
     if (!selectedTeamId) { setActiveSprint(null); setLoading(false); return; }
+    setLoading(true);
+    setActiveSprint(undefined);
     const unsub = subscribeToActiveSprint(selectedTeamId, (s) => {
       setActiveSprint(s);
       setLoading(false);
@@ -44,41 +54,19 @@ export default function PraisesScreen() {
     return unsub;
   }, [selectedTeamId]);
 
-  // 보낸 칭찬 구독 (활성 스프린트 있으면 스프린트 기준, 없으면 팀 전체 내역)
+  // 보낸 칭찬 구독 (활성 스프린트 기준)
   useEffect(() => {
-    if (!user || !selectedTeamId) { setSentPraises([]); return; }
-    if (activeSprint) {
-      const unsub = subscribeToSentPraises(activeSprint.id, user.uid, setSentPraises);
-      return unsub;
-    }
-    // 스프린트 없을 때: 단일 필드 쿼리 + 클라이언트 필터/정렬
-    getDocs(query(collection(db, 'praises'), where('fromUserId', '==', user.uid))).then((snap) => {
-      setSentPraises(
-        snap.docs
-          .map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) }))
-          .filter((p) => p.teamId === selectedTeamId)
-          .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)),
-      );
-    });
-  }, [activeSprint?.id, user?.uid, selectedTeamId]);
+    if (!user || !activeSprint) { setSentPraises([]); return; }
+    const unsub = subscribeToSentPraises(activeSprint.id, user.uid, setSentPraises);
+    return unsub;
+  }, [activeSprint?.id, user?.uid]);
 
-  // 받은 칭찬 구독 (활성 스프린트 있으면 스프린트 기준, 없으면 팀 전체 내역)
+  // 받은 칭찬 구독 (활성 스프린트 기준)
   useEffect(() => {
-    if (!user || !selectedTeamId) { setReceivedPraises([]); return; }
-    if (activeSprint) {
-      const unsub = subscribeToReceivedPraises(activeSprint.id, user.uid, setReceivedPraises);
-      return unsub;
-    }
-    // 스프린트 없을 때: 단일 필드 쿼리 + 클라이언트 필터/정렬
-    getDocs(query(collection(db, 'praises'), where('toUserId', '==', user.uid))).then((snap) => {
-      setReceivedPraises(
-        snap.docs
-          .map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) }))
-          .filter((p) => p.teamId === selectedTeamId)
-          .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)),
-      );
-    });
-  }, [activeSprint?.id, user?.uid, selectedTeamId]);
+    if (!user || !activeSprint) { setReceivedPraises([]); return; }
+    const unsub = subscribeToReceivedPraises(activeSprint.id, user.uid, setReceivedPraises);
+    return unsub;
+  }, [activeSprint?.id, user?.uid]);
 
   const list = activeTab === 'sent' ? sentPraises : receivedPraises;
   const isRevealed = activeSprint?.status === 'REVEALED' || activeSprint?.status === 'CLOSED';
@@ -88,6 +76,12 @@ export default function PraisesScreen() {
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.title}>칭찬</Text>
+        {myTeams.length > 1 && (
+          <TouchableOpacity style={styles.teamSelector} onPress={() => setShowTeamPicker(true)}>
+            <Text style={styles.teamSelectorText}>{selectedTeam?.name ?? '팀 선택'}</Text>
+            <Text style={styles.teamSelectorArrow}>▾</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* 탭 */}
@@ -109,6 +103,11 @@ export default function PraisesScreen() {
         <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
           {[1, 2, 3].map((i) => <PraiseCardSkeleton key={i} />)}
         </ScrollView>
+      ) : !activeSprint ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyEmoji}>😴</Text>
+          <Text style={styles.emptyText}>진행 중인 스프린트가 없어요</Text>
+        </View>
       ) : list.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.emptyEmoji}>{activeTab === 'sent' ? '✍️' : '💌'}</Text>
@@ -128,6 +127,28 @@ export default function PraisesScreen() {
           ))}
         </ScrollView>
       )}
+
+      {/* 팀 선택 모달 */}
+      <Modal visible={showTeamPicker} transparent animationType="fade">
+        <TouchableOpacity style={styles.overlay} onPress={() => setShowTeamPicker(false)}>
+          <View style={styles.pickerSheet}>
+            <Text style={styles.pickerTitle}>팀 선택</Text>
+            {myTeams.map((team) => (
+              <TouchableOpacity
+                key={team.id}
+                style={[styles.pickerItem, team.id === selectedTeamId && styles.pickerItemActive]}
+                onPress={() => { setSelectedTeam(team.id); setShowTeamPicker(false); }}
+              >
+                <Avatar name={team.name} size={32} />
+                <Text style={[styles.pickerItemText, team.id === selectedTeamId && styles.pickerItemTextActive]}>
+                  {team.name}
+                </Text>
+                {team.id === selectedTeamId && <Text style={styles.checkmark}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -155,7 +176,7 @@ function PraiseCard({ praise, tab, isRevealed }: {
       )}
 
       {/* 칭찬 내용 */}
-      <Text style={styles.cardContent}>"{praise.content}"</Text>
+      <Text style={styles.cardContent}>{praise.content}</Text>
 
       {/* 카테고리 + 날짜 */}
       <View style={styles.cardFooter}>
@@ -174,8 +195,22 @@ function PraiseCard({ praise, tab, isRevealed }: {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fafafa' },
-  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
   title: { fontSize: 22, fontWeight: '800', color: AppColors.textPrimary },
+  teamSelector: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: AppColors.primaryLight,
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6,
+  },
+  teamSelectorText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
+  teamSelectorArrow: { fontSize: 12, color: AppColors.primary },
 
   // 탭
   tabs: {
@@ -207,7 +242,7 @@ const styles = StyleSheet.create({
   cardFromText: { fontSize: 13, fontWeight: '600', color: AppColors.primary },
   cardContent: {
     fontSize: 15, color: AppColors.textPrimary,
-    lineHeight: 23, fontStyle: 'italic',
+    lineHeight: 23,
   },
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   categoryChips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 },
@@ -217,4 +252,20 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 11, fontWeight: '600', color: AppColors.primary },
   cardDate: { fontSize: 11, color: AppColors.textSecondary },
+
+  // 팀 선택 모달
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  pickerSheet: {
+    backgroundColor: AppColors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingTop: 20, paddingBottom: 36, paddingHorizontal: 20, gap: 4,
+  },
+  pickerTitle: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary, marginBottom: 8 },
+  pickerItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12,
+  },
+  pickerItemActive: { backgroundColor: AppColors.primaryLight },
+  pickerItemText: { flex: 1, fontSize: 15, color: AppColors.textPrimary, fontWeight: '500' },
+  pickerItemTextActive: { color: AppColors.primary, fontWeight: '700' },
+  checkmark: { fontSize: 16, color: AppColors.primary, fontWeight: '700' },
 });

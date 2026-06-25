@@ -46,14 +46,19 @@ export async function updateUserProfile(
 export function subscribeToUserProfile(
   uid: string,
   callback: (profile: UserProfile | null) => void,
+  onError?: (error: Error) => void,
 ): () => void {
-  return onSnapshot(doc(db, 'users', uid), (snap) => {
-    if (!snap.exists()) {
-      callback(null);
-      return;
-    }
-    callback({ uid: snap.id, ...(snap.data() as Omit<UserProfile, 'uid'>) });
-  });
+  return onSnapshot(
+    doc(db, 'users', uid),
+    (snap) => {
+      if (!snap.exists()) {
+        callback(null);
+        return;
+      }
+      callback({ uid: snap.id, ...(snap.data() as Omit<UserProfile, 'uid'>) });
+    },
+    onError,
+  );
 }
 
 export function getInitials(name?: string | null): string {

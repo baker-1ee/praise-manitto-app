@@ -42,7 +42,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 export default function TeamManageScreen() {
   const { teamId } = useLocalSearchParams<{ teamId: string }>();
   const { user } = useAuth();
-  const { myTeams, leaveTeam } = useTeam();
+  const { myTeams, leaveTeam, setSelectedTeam } = useTeam();
 
   const myMembership = myTeams.find((t) => t.id === teamId);
   const isLeader = myMembership?.role === 'LEADER';
@@ -142,9 +142,13 @@ export default function TeamManageScreen() {
           {
             text: '공개하기 🎉',
             onPress: async () => {
-              await revealSprint(activeSprint.id);
-              loadData();
-              router.push(`/reveal/${activeSprint.id}`);
+              try {
+                await revealSprint(activeSprint.id);
+                loadData();
+                router.push(`/reveal/${activeSprint.id}`);
+              } catch {
+                Alert.alert('오류', '공개 처리 중 오류가 발생했습니다.');
+              }
             },
           },
         ],
@@ -197,7 +201,8 @@ export default function TeamManageScreen() {
       });
       setSprintName('');
       setShowCreateForm(false);
-      loadData(); // 목록 갱신
+      setSelectedTeam(teamId!);
+      router.replace('/(tabs)');
     } catch (e) {
       setSprintError(e instanceof Error ? e.message : '스프린트 생성에 실패했습니다.');
     } finally {
@@ -336,8 +341,15 @@ export default function TeamManageScreen() {
               </View>
             ) : (
               <View style={styles.sprintList}>
-                {sprints.map((s) => (
-                  <View key={s.id} style={styles.sprintItem}>
+                {sprints.map((s) => {
+                  const isViewable = s.status === 'REVEALED' || s.status === 'CLOSED';
+                  return (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={styles.sprintItem}
+                    onPress={() => isViewable && router.push(`/reveal/${s.id}`)}
+                    activeOpacity={isViewable ? 0.7 : 1}
+                  >
                     <View style={styles.sprintItemInfo}>
                       <Text style={styles.sprintItemName}>{s.name}</Text>
                       <Text style={styles.sprintItemDate}>
@@ -356,11 +368,12 @@ export default function TeamManageScreen() {
                         s.status === 'REVEALED' ? styles.statusTextRevealed :
                         styles.statusTextClosed,
                       ]}>
-                        {s.status === 'ACTIVE' ? '진행 중' : s.status === 'REVEALED' ? '공개됨' : '종료'}
+                        {s.status === 'ACTIVE' ? '진행 중' : s.status === 'REVEALED' ? '공개됨 →' : '종료 →'}
                       </Text>
                     </View>
-                  </View>
-                ))}
+                  </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
           </View>

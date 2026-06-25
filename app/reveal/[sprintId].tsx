@@ -24,15 +24,16 @@ export default function RevealScreen() {
 
   useEffect(() => {
     if (!sprintId) return;
-    getRevealData(sprintId).then((d) => {
-      setData(d);
-      setLoading(false);
-      if (d) {
-        // 처음엔 전부 펼침
-        setExpandedIds(new Set(d.pairs.map((p) => p.targetId)));
-        setTimeout(() => confettiRef.current?.start(), 400);
-      }
-    });
+    getRevealData(sprintId)
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+        if (d) {
+          setExpandedIds(new Set(d.pairs.map((p) => p.targetId)));
+          setTimeout(() => confettiRef.current?.start(), 400);
+        }
+      })
+      .catch(() => setLoading(false));
   }, [sprintId]);
 
   const toggleExpand = (targetId: string) => {
@@ -153,7 +154,7 @@ function PairCard({ pair, expanded, onToggle }: {
                     ))}
                   </View>
                 )}
-                <Text style={styles.praiseContent}>"{praise.content}"</Text>
+                <Text style={styles.praiseContent}>{praise.content}</Text>
                 {praise.createdAt && (
                   <Text style={styles.praiseDate}>
                     {praise.createdAt.toDate().toLocaleDateString('ko-KR')}
@@ -217,6 +218,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 2,
   },
   chipText: { fontSize: 11, fontWeight: '600', color: AppColors.primary },
-  praiseContent: { fontSize: 14, color: AppColors.textPrimary, lineHeight: 21, fontStyle: 'italic' },
+  praiseContent: { fontSize: 14, color: AppColors.textPrimary, lineHeight: 21 },
   praiseDate: { fontSize: 11, color: AppColors.textSecondary },
 });
