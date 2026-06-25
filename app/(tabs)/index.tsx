@@ -143,7 +143,7 @@ export default function HomeScreen() {
             <View style={styles.statsRow}>
               <TouchableOpacity
                 style={styles.statCard}
-                onPress={() => router.push('/(tabs)/praises')}
+                onPress={() => router.push({ pathname: '/(tabs)/praises', params: { tab: 'sent' } })}
               >
                 <Text style={styles.statNumber}>{stats.sent}</Text>
                 <Text style={styles.statLabel}>내가 보낸 칭찬</Text>
