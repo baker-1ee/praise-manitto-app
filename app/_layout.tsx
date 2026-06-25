@@ -61,29 +61,28 @@ function RootNavigator() {
     }
   }, [navigationState?.key, user, loading, myTeams.length, segments]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={AppColors.primary} />
-      </View>
-    );
-  }
-
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="team/[teamId]/index"
-        options={{
-          headerShown: true,
-          headerTintColor: AppColors.primary,
-          headerBackTitle: '팀',
-          headerShadowVisible: false,
-          headerStyle: { backgroundColor: '#fafafa' },
-        }}
-      />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="team/[teamId]/index"
+          options={{
+            headerShown: true,
+            headerTintColor: AppColors.primary,
+            headerBackTitle: '팀',
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: '#fafafa' },
+          }}
+        />
+      </Stack>
+      {loading && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+          <ActivityIndicator size="large" color={AppColors.primary} />
+        </View>
+      )}
+    </>
   );
 }
