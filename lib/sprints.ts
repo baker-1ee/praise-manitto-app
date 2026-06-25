@@ -86,45 +86,41 @@ export async function createSprint(params: {
   return sprintRef.id;
 }
 
-/** 팀의 활성 스프린트 실시간 구독 */
+/** 팀의 활성 스프린트 실시간 구독
+ *  단일 필드 where + 클라이언트 필터 → 복합 인덱스 불필요 */
 export function subscribeToActiveSprint(
   teamId: string,
   callback: (sprint: Sprint | null) => void,
 ): () => void {
-  const q = query(
-    collection(db, 'sprints'),
-    where('teamId', '==', teamId),
-    where('status', '==', 'ACTIVE'),
-  );
+  const q = query(collection(db, 'sprints'), where('teamId', '==', teamId));
   return onSnapshot(q, (snap) => {
-    if (snap.empty) { callback(null); return; }
-    const d = snap.docs[0];
-    callback({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) });
+    const active = snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
+      .find((s) => s.status === 'ACTIVE') ?? null;
+    callback(active);
   });
 }
 
-/** 팀 스프린트 목록 (최신순) */
+/** 팀 스프린트 목록 (최신순) — 클라이언트 정렬 */
 export async function getTeamSprints(teamId: string): Promise<Sprint[]> {
   const snap = await getDocs(
-    query(collection(db, 'sprints'), where('teamId', '==', teamId), orderBy('createdAt', 'desc')),
+    query(collection(db, 'sprints'), where('teamId', '==', teamId)),
   );
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
+    .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
 }
 
-/** 직전 공개 스프린트 조회 */
+/** 직전 공개 스프린트 조회 — 클라이언트 필터/정렬 */
 export async function getLastRevealedSprint(teamId: string): Promise<Sprint | null> {
   const snap = await getDocs(
-    query(
-      collection(db, 'sprints'),
-      where('teamId', '==', teamId),
-      where('status', 'in', ['REVEALED', 'CLOSED']),
-      orderBy('createdAt', 'desc'),
-      limit(1),
-    ),
+    query(collection(db, 'sprints'), where('teamId', '==', teamId)),
   );
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...(d.data() as Omit<Sprint, 'id'>) };
+  const revealed = snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
+    .filter((s) => s.status === 'REVEALED' || s.status === 'CLOSED')
+    .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+  return revealed[0] ?? null;
 }
 
 // ─── 공개 (Reveal) ────────────────────────────────────────────────────────────
@@ -134,25 +130,17 @@ export interface RevealCheckResult {
   unpraised: string[]; // 칭찬 미작성 멤버 userId 목록
 }
 
-/** 공개 가능 여부 확인 — pairs 순회 후 praise 미작성 manitoId 목록 반환 */
+/** 공개 가능 여부 확인 — 단일 쿼리로 스프린트 칭찬 전체 조회 후 클라이언트 판별 */
 export async function checkRevealEligibility(sprintId: string): Promise<RevealCheckResult> {
-  const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
+  const [pairsSnap, praisesSnap] = await Promise.all([
+    getDocs(collection(db, 'sprints', sprintId, 'pairs')),
+    getDocs(query(collection(db, 'praises'), where('sprintId', '==', sprintId))),
+  ]);
+
   const pairs = pairsSnap.docs.map((d) => d.data() as { manitoId: string; targetId: string });
+  const praisedSet = new Set(praisesSnap.docs.map((d) => d.data().fromUserId as string));
 
-  const results = await Promise.all(
-    pairs.map(async ({ manitoId }) => {
-      const praisesSnap = await getDocs(
-        query(
-          collection(db, 'praises'),
-          where('sprintId', '==', sprintId),
-          where('fromUserId', '==', manitoId),
-        ),
-      );
-      return { manitoId, hasPraised: !praisesSnap.empty };
-    }),
-  );
-
-  const unpraised = results.filter((r) => !r.hasPraised).map((r) => r.manitoId);
+  const unpraised = pairs.filter((p) => !praisedSet.has(p.manitoId)).map((p) => p.manitoId);
   return { canReveal: unpraised.length === 0, unpraised };
 }
 
@@ -205,15 +193,18 @@ export async function getRevealData(sprintId: string): Promise<RevealData | null
   );
 
   // 칭찬 조회
+  // 단일 필드 쿼리 + 클라이언트 정렬
   const praisesSnap = await getDocs(
-    query(collection(db, 'praises'), where('sprintId', '==', sprintId), orderBy('createdAt', 'asc')),
+    query(collection(db, 'praises'), where('sprintId', '==', sprintId)),
   );
-  const allPraises = praisesSnap.docs.map((d) => ({
-    fromUserId: d.data().fromUserId as string,
-    content: d.data().content as string,
-    categories: d.data().categories as string[],
-    createdAt: d.data().createdAt as Timestamp | null,
-  }));
+  const allPraises = praisesSnap.docs
+    .map((d) => ({
+      fromUserId: d.data().fromUserId as string,
+      content: d.data().content as string,
+      categories: d.data().categories as string[],
+      createdAt: d.data().createdAt as Timestamp | null,
+    }))
+    .sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0)); // asc
 
   const pairs: RevealPair[] = rawPairs.map((p) => ({
     manitoId: p.manitoId,

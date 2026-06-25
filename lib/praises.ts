@@ -47,58 +47,51 @@ export async function writePraise(params: {
   });
 }
 
-/** 내가 보낸 칭찬 실시간 구독 (스프린트 기준) */
+/** 내가 보낸 칭찬 실시간 구독 — 단일 필드 + 클라이언트 필터/정렬 */
 export function subscribeToSentPraises(
   sprintId: string,
   userId: string,
   callback: (praises: Praise[]) => void,
 ): () => void {
-  const q = query(
-    collection(db, 'praises'),
-    where('sprintId', '==', sprintId),
-    where('fromUserId', '==', userId),
-    orderBy('createdAt', 'desc'),
-  );
+  const q = query(collection(db, 'praises'), where('sprintId', '==', sprintId));
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) })));
+    const result = snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) }))
+      .filter((p) => p.fromUserId === userId)
+      .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+    callback(result);
   });
 }
 
-/** 내가 받은 칭찬 실시간 구독 (스프린트 기준) */
+/** 내가 받은 칭찬 실시간 구독 — 단일 필드 + 클라이언트 필터/정렬 */
 export function subscribeToReceivedPraises(
   sprintId: string,
   userId: string,
   callback: (praises: Praise[]) => void,
 ): () => void {
-  const q = query(
-    collection(db, 'praises'),
-    where('sprintId', '==', sprintId),
-    where('toUserId', '==', userId),
-    orderBy('createdAt', 'desc'),
-  );
+  const q = query(collection(db, 'praises'), where('sprintId', '==', sprintId));
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) })));
+    const result = snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) }))
+      .filter((p) => p.toUserId === userId)
+      .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+    callback(result);
   });
 }
 
-/** 칭찬 통계 (보낸 수 / 받은 수) */
+/** 칭찬 통계 — 단일 쿼리 후 클라이언트 집계 */
 export async function getPraiseStats(
   sprintId: string,
   userId: string,
 ): Promise<{ sent: number; received: number }> {
-  const [sentSnap, receivedSnap] = await Promise.all([
-    getDocs(query(
-      collection(db, 'praises'),
-      where('sprintId', '==', sprintId),
-      where('fromUserId', '==', userId),
-    )),
-    getDocs(query(
-      collection(db, 'praises'),
-      where('sprintId', '==', sprintId),
-      where('toUserId', '==', userId),
-    )),
-  ]);
-  return { sent: sentSnap.size, received: receivedSnap.size };
+  const snap = await getDocs(
+    query(collection(db, 'praises'), where('sprintId', '==', sprintId)),
+  );
+  const all = snap.docs.map((d) => d.data() as { fromUserId: string; toUserId: string });
+  return {
+    sent: all.filter((p) => p.fromUserId === userId).length,
+    received: all.filter((p) => p.toUserId === userId).length,
+  };
 }
 
 // ─── 조르기 (nudge) ───────────────────────────────────────────────────────────
@@ -111,7 +104,7 @@ export interface NudgeLog {
   createdAt: Timestamp | null;
 }
 
-/** 오늘 이미 조른 적 있는지 확인 */
+/** 오늘 이미 조른 적 있는지 확인 — 단일 필드 + 클라이언트 필터 */
 export async function hasNudgedToday(
   sprintId: string,
   requesterId: string,
@@ -120,14 +113,12 @@ export async function hasNudgedToday(
   todayStart.setHours(0, 0, 0, 0);
 
   const snap = await getDocs(
-    query(
-      collection(db, 'nudgeLogs'),
-      where('sprintId', '==', sprintId),
-      where('requesterId', '==', requesterId),
-    ),
+    query(collection(db, 'nudgeLogs'), where('sprintId', '==', sprintId)),
   );
   return snap.docs.some((d) => {
-    const ts = (d.data().createdAt as Timestamp | null)?.toDate();
+    const data = d.data();
+    if (data.requesterId !== requesterId) return false;
+    const ts = (data.createdAt as Timestamp | null)?.toDate();
     return ts ? ts >= todayStart : false;
   });
 }

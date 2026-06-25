@@ -12,9 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
 import { subscribeToActiveSprint, Sprint } from '@/lib/sprints';
-import {
-  getDocs, collection, query, where, orderBy,
-} from 'firebase/firestore';
+import { getDocs, collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   Praise,
@@ -53,14 +51,14 @@ export default function PraisesScreen() {
       const unsub = subscribeToSentPraises(activeSprint.id, user.uid, setSentPraises);
       return unsub;
     }
-    // 스프린트 없을 때 팀 전체 보낸 칭찬
-    getDocs(query(
-      collection(db, 'praises'),
-      where('teamId', '==', selectedTeamId),
-      where('fromUserId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-    )).then((snap) => {
-      setSentPraises(snap.docs.map((d) => ({ id: d.id, ...d.data() as Omit<Praise, 'id'> })));
+    // 스프린트 없을 때: 단일 필드 쿼리 + 클라이언트 필터/정렬
+    getDocs(query(collection(db, 'praises'), where('fromUserId', '==', user.uid))).then((snap) => {
+      setSentPraises(
+        snap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) }))
+          .filter((p) => p.teamId === selectedTeamId)
+          .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)),
+      );
     });
   }, [activeSprint?.id, user?.uid, selectedTeamId]);
 
@@ -71,14 +69,14 @@ export default function PraisesScreen() {
       const unsub = subscribeToReceivedPraises(activeSprint.id, user.uid, setReceivedPraises);
       return unsub;
     }
-    // 스프린트 없을 때 팀 전체 받은 칭찬
-    getDocs(query(
-      collection(db, 'praises'),
-      where('teamId', '==', selectedTeamId),
-      where('toUserId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-    )).then((snap) => {
-      setReceivedPraises(snap.docs.map((d) => ({ id: d.id, ...d.data() as Omit<Praise, 'id'> })));
+    // 스프린트 없을 때: 단일 필드 쿼리 + 클라이언트 필터/정렬
+    getDocs(query(collection(db, 'praises'), where('toUserId', '==', user.uid))).then((snap) => {
+      setReceivedPraises(
+        snap.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<Praise, 'id'>) }))
+          .filter((p) => p.teamId === selectedTeamId)
+          .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)),
+      );
     });
   }, [activeSprint?.id, user?.uid, selectedTeamId]);
 
