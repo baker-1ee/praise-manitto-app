@@ -21,10 +21,12 @@ import {
   checkRevealEligibility,
   createSprint,
   formatSprintDate,
+  getSprintParticipants,
   revealSprint,
   Sprint,
   subscribeToTeamSprints,
 } from '@/lib/sprints';
+import { getSprintPraiseCount } from '@/lib/praises';
 import { getUserProfile } from '@/lib/users';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -42,6 +44,9 @@ export default function SprintsScreen() {
   const [loading, setLoading] = useState(true);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [revealing, setRevealing] = useState(false);
+  const [praiseCounts, setPraiseCounts] = useState<Record<string, number>>({});
+  const [participantsModal, setParticipantsModal] = useState<{ sprint: Sprint; members: { userId: string; name: string; bio?: string }[] } | null>(null);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
 
   // 스프린트 생성 폼
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -72,6 +77,24 @@ export default function SprintsScreen() {
 
   const activeSprint = sprints.find((s) => s.status === 'ACTIVE') ?? null;
   const pastSprints = sprints.filter((s) => s.status !== 'ACTIVE');
+
+  // 지난 스프린트 칭찬 수 일괄 조회
+  useEffect(() => {
+    if (pastSprints.length === 0) return;
+    pastSprints.forEach(async (s) => {
+      if (praiseCounts[s.id] !== undefined) return;
+      const count = await getSprintPraiseCount(s.id);
+      setPraiseCounts((prev) => ({ ...prev, [s.id]: count }));
+    });
+  }, [pastSprints.map((s) => s.id).join(',')]);
+
+  const handleOpenParticipants = async (sprint: Sprint) => {
+    setLoadingParticipants(true);
+    setParticipantsModal({ sprint, members: [] });
+    const members = await getSprintParticipants(sprint.id);
+    setParticipantsModal({ sprint, members });
+    setLoadingParticipants(false);
+  };
 
   const handleReveal = async () => {
     if (!activeSprint) return;
@@ -273,16 +296,27 @@ export default function SprintsScreen() {
                         {formatSprintDate(s.startDate)} ~ {formatSprintDate(s.endDate)}
                       </Text>
                     </View>
-                    <View style={[
-                      styles.pastBadge,
-                      s.status === 'REVEALED' ? styles.pastBadgeRevealed : styles.pastBadgeClosed,
-                    ]}>
-                      <Text style={[
-                        styles.pastBadgeText,
-                        s.status === 'REVEALED' ? styles.pastBadgeTextRevealed : styles.pastBadgeTextClosed,
+                    <View style={styles.pastBadgeRow}>
+                      {praiseCounts[s.id] !== undefined && (
+                        <TouchableOpacity
+                          style={styles.praiseBadge}
+                          onPress={(e) => { e.stopPropagation?.(); handleOpenParticipants(s); }}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Text style={styles.praiseBadgeText}>💌 {praiseCounts[s.id]}</Text>
+                        </TouchableOpacity>
+                      )}
+                      <View style={[
+                        styles.pastBadge,
+                        s.status === 'REVEALED' ? styles.pastBadgeRevealed : styles.pastBadgeClosed,
                       ]}>
-                        {s.status === 'REVEALED' ? '공개됨 →' : '종료 →'}
-                      </Text>
+                        <Text style={[
+                          styles.pastBadgeText,
+                          s.status === 'REVEALED' ? styles.pastBadgeTextRevealed : styles.pastBadgeTextClosed,
+                        ]}>
+                          {s.status === 'REVEALED' ? '공개됨 →' : '종료 →'}
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -303,6 +337,29 @@ export default function SprintsScreen() {
 
         </ScrollView>
       )}
+
+      {/* 참여 멤버 모달 */}
+      <Modal visible={!!participantsModal} transparent animationType="fade">
+        <TouchableOpacity style={styles.overlay} onPress={() => setParticipantsModal(null)}>
+          <View style={styles.pickerSheet}>
+            <Text style={styles.pickerTitle}>{participantsModal?.sprint.name}</Text>
+            <Text style={styles.participantsSubtitle}>참여 멤버 {participantsModal?.members.length ?? 0}명</Text>
+            {loadingParticipants ? (
+              <ActivityIndicator color={AppColors.primary} style={{ marginVertical: 20 }} />
+            ) : (
+              participantsModal?.members.map((m) => (
+                <View key={m.userId} style={styles.participantRow}>
+                  <Avatar name={m.name} size={36} />
+                  <View>
+                    <Text style={styles.participantName}>{m.name}</Text>
+                    {m.bio ? <Text style={styles.participantBio}>{m.bio}</Text> : null}
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* 팀 선택 모달 */}
       <Modal visible={showTeamPicker} transparent animationType="fade">
@@ -406,6 +463,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
   },
   pastItemBorder: { borderBottomWidth: 1, borderBottomColor: AppColors.borderLight },
+  pastBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  praiseBadge: { backgroundColor: AppColors.primaryLight, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  praiseBadgeText: { fontSize: 11, fontWeight: '600', color: AppColors.primary },
   pastBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   pastBadgeRevealed: { backgroundColor: AppColors.primaryMid },
   pastBadgeClosed: { backgroundColor: '#f1f5f9' },
@@ -425,7 +485,11 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingTop: 20, paddingBottom: 36, paddingHorizontal: 20, gap: 4,
   },
-  pickerTitle: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary, marginBottom: 8 },
+  pickerTitle: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary, marginBottom: 2 },
+  participantsSubtitle: { fontSize: 12, color: AppColors.textMuted, marginBottom: 8 },
+  participantRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12 },
+  participantName: { fontSize: 15, fontWeight: '600', color: AppColors.textPrimary },
+  participantBio: { fontSize: 12, color: AppColors.textMuted, marginTop: 1 },
   pickerItem: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12,

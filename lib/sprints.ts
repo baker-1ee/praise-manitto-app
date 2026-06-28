@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   onSnapshot,
@@ -184,8 +185,6 @@ export async function getRevealData(sprintId: string): Promise<RevealData | null
   const sprintSnap = await getDocs(
     query(collection(db, 'sprints'), where('__name__', '==', sprintId)),
   );
-  // 직접 doc 조회
-  const { getDoc } = await import('firebase/firestore');
   const sprintDoc = await getDoc(doc(db, 'sprints', sprintId));
   if (!sprintDoc.exists()) return null;
   const sprint = { id: sprintDoc.id, ...(sprintDoc.data() as Omit<Sprint, 'id'>) };
@@ -248,4 +247,21 @@ export async function getMyPair(
   if (snap.empty) return null;
   const d = snap.docs[0];
   return { id: d.id, ...(d.data() as Omit<ManitoPair, 'id'>) };
+}
+
+/** 스프린트 참여 멤버 프로필 조회 (pairs 서브컬렉션 기반, 개인 칭찬 수 미포함) */
+export async function getSprintParticipants(
+  sprintId: string,
+): Promise<{ userId: string; name: string; bio?: string }[]> {
+  const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
+  const userIds = [...new Set(pairsSnap.docs.map((d) => d.data().manitoId as string))];
+  const profiles = await Promise.all(
+    userIds.map(async (userId) => {
+      const snap = await getDoc(doc(db, 'users', userId));
+      if (!snap.exists()) return null;
+      const { name, bio } = snap.data() as { name: string; bio?: string };
+      return { userId, name, bio };
+    }),
+  );
+  return profiles.filter((p): p is { userId: string; name: string; bio?: string } => p !== null);
 }

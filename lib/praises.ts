@@ -94,6 +94,14 @@ export async function getPraiseStats(
   };
 }
 
+/** 스프린트 칭찬 총 개수 */
+export async function getSprintPraiseCount(sprintId: string): Promise<number> {
+  const snap = await getDocs(
+    query(collection(db, 'praises'), where('sprintId', '==', sprintId)),
+  );
+  return snap.size;
+}
+
 // ─── 조르기 (nudge) ───────────────────────────────────────────────────────────
 
 export interface NudgeLog {
