@@ -185,16 +185,14 @@ export default function HomeScreen() {
         {/* 스프린트 공개됨 */}
         {!isLoading && activeSprint?.status === 'REVEALED' && (
           <View style={styles.sprintSection}>
-            <View style={styles.revealedBanner}>
+            <TouchableOpacity style={styles.revealedBanner} onPress={() => router.push(`/reveal/${activeSprint.id}`)} activeOpacity={0.8}>
               <Text style={styles.revealedBannerEmoji}>🎊</Text>
               <View style={styles.revealedBannerInfo}>
                 <Text style={styles.revealedBannerTitle}>스프린트가 공개됐어요!</Text>
                 <Text style={styles.revealedBannerSub}>{activeSprint.name} · 마니또가 공개되었습니다</Text>
               </View>
-              <TouchableOpacity onPress={() => router.push(`/reveal/${activeSprint.id}`)}>
-                <Text style={styles.revealedBannerLink}>결과 보기 →</Text>
-              </TouchableOpacity>
-            </View>
+              <Text style={styles.revealedBannerLink}>결과 보기 →</Text>
+            </TouchableOpacity>
 
             <View style={styles.statsRow}>
               <TouchableOpacity
