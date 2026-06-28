@@ -94,9 +94,12 @@ export function subscribeToActiveSprint(
 ): () => void {
   const q = query(collection(db, 'sprints'), where('teamId', '==', teamId));
   return onSnapshot(q, (snap) => {
-    const active = snap.docs
-      .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
-      .find((s) => s.status === 'ACTIVE') ?? null;
+    const sprints = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }));
+    const active = sprints.find((s) => s.status === 'ACTIVE')
+      ?? sprints
+          .filter((s) => s.status === 'REVEALED')
+          .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))[0]
+      ?? null;
     callback(active);
   });
 }

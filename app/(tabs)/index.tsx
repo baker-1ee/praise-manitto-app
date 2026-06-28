@@ -128,8 +128,8 @@ export default function HomeScreen() {
           <View style={styles.center}><ActivityIndicator color={AppColors.primary} /></View>
         )}
 
-        {/* 활성 스프린트 있음 */}
-        {!isLoading && activeSprint && (
+        {/* 활성 스프린트 있음 (진행 중) */}
+        {!isLoading && activeSprint?.status === 'ACTIVE' && (
           <View style={styles.sprintSection}>
             {/* 스프린트 헤더 */}
             <View style={styles.sprintHeader}>
@@ -179,6 +179,39 @@ export default function HomeScreen() {
                 ? <ActivityIndicator size="small" color={AppColors.primary} />
                 : <Text style={styles.nudgeButtonText}>🥺  마니또에게 칭찬 조르기</Text>}
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* 스프린트 공개됨 */}
+        {!isLoading && activeSprint?.status === 'REVEALED' && (
+          <View style={styles.sprintSection}>
+            <View style={styles.revealedBanner}>
+              <Text style={styles.revealedBannerEmoji}>🎊</Text>
+              <View style={styles.revealedBannerInfo}>
+                <Text style={styles.revealedBannerTitle}>스프린트가 공개됐어요!</Text>
+                <Text style={styles.revealedBannerSub}>{activeSprint.name} · 마니또가 공개되었습니다</Text>
+              </View>
+              <TouchableOpacity onPress={() => router.push(`/reveal/${activeSprint.id}`)}>
+                <Text style={styles.revealedBannerLink}>결과 보기 →</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.statsRow}>
+              <TouchableOpacity
+                style={styles.statCard}
+                onPress={() => router.push({ pathname: '/(tabs)/praises', params: { tab: 'sent' } })}
+              >
+                <Text style={styles.statNumber}>{stats.sent}</Text>
+                <Text style={styles.statLabel}>내가 보낸 칭찬</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.statCard}
+                onPress={() => router.push({ pathname: '/(tabs)/praises', params: { tab: 'received' } })}
+              >
+                <Text style={styles.statNumber}>{stats.received}</Text>
+                <Text style={styles.statLabel}>내가 받은 칭찬</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -279,6 +312,18 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.white,
   },
   nudgeButtonText: { fontSize: 15, fontWeight: '600', color: AppColors.textMuted },
+
+  // 공개된 스프린트 배너
+  revealedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#fef9c3', borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: '#fde047',
+  },
+  revealedBannerEmoji: { fontSize: 28 },
+  revealedBannerInfo: { flex: 1, gap: 2 },
+  revealedBannerTitle: { fontSize: 15, fontWeight: '700', color: AppColors.textPrimary },
+  revealedBannerSub: { fontSize: 12, color: AppColors.textMuted },
+  revealedBannerLink: { fontSize: 13, fontWeight: '700', color: AppColors.primary },
 
   // 빈 상태
   emptySection: { paddingHorizontal: 20, paddingTop: 8 },
