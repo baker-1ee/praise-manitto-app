@@ -40,7 +40,7 @@ export default function TeamsScreen() {
           <Text style={styles.title}>팀</Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => router.push('/(onboarding)')}
+            onPress={() => router.push('/(onboarding)?addTeam=1')}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={styles.addButtonText}>+ 팀 추가</Text>

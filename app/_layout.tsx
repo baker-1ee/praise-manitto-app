@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
+import { Stack, useGlobalSearchParams, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -34,6 +34,7 @@ function RootNavigator() {
   const { myTeams, loading: teamLoading } = useTeam();
   const segments = useSegments();
   const router = useRouter();
+  const { addTeam } = useGlobalSearchParams();
   // Expo Router: 네비게이터가 완전히 마운트된 뒤에만 이동
   const navigationState = useRootNavigationState();
 
@@ -56,10 +57,10 @@ function RootNavigator() {
       return;
     }
 
-    if (inAuthGroup || inOnboarding) {
+    if (inAuthGroup || (inOnboarding && !addTeam)) {
       router.replace('/(tabs)');
     }
-  }, [navigationState?.key, user, loading, myTeams.length, segments]);
+  }, [navigationState?.key, user, loading, myTeams.length, segments, addTeam]);
 
   return (
     <>
