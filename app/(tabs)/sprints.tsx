@@ -21,6 +21,7 @@ import { getTeamMembersWithProfiles } from '@/lib/teams';
 import {
   checkRevealEligibility,
   createSprint,
+  deleteSprint,
   formatSprintDate,
   getSprintParticipants,
   revealSprint,
@@ -45,6 +46,7 @@ export default function SprintsScreen() {
   const [loading, setLoading] = useState(true);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [revealing, setRevealing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [praiseCounts, setPraiseCounts] = useState<Record<string, number>>({});
   const [participantsModal, setParticipantsModal] = useState<{ sprint: Sprint; members: { userId: string; name: string; bio?: string }[] } | null>(null);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
@@ -149,6 +151,31 @@ export default function SprintsScreen() {
     } finally {
       setRevealing(false);
     }
+  };
+
+  const handleDeleteSprint = () => {
+    if (!activeSprint) return;
+    Alert.alert(
+      '스프린트를 삭제할까요?',
+      `'${activeSprint.name}'을 삭제하면 모든 칭찬 기록이 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteSprint(activeSprint.id);
+            } catch {
+              Alert.alert('오류', '스프린트 삭제에 실패했습니다.');
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleCreateSprint = async () => {
@@ -268,11 +295,18 @@ export default function SprintsScreen() {
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionLabel}>진행 중</Text>
                 {isLeader && (
-                  <TouchableOpacity style={styles.revealBtn} onPress={handleReveal} disabled={revealing}>
-                    {revealing
-                      ? <ActivityIndicator size={14} color={AppColors.white} />
-                      : <Text style={styles.revealBtnText}>공개하기 🎉</Text>}
-                  </TouchableOpacity>
+                  <View style={styles.leaderActions}>
+                    <TouchableOpacity style={styles.deleteSprintBtn} onPress={handleDeleteSprint} disabled={deleting}>
+                      {deleting
+                        ? <ActivityIndicator size={14} color={AppColors.error} />
+                        : <Text style={styles.deleteSprintBtnText}>삭제</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.revealBtn} onPress={handleReveal} disabled={revealing}>
+                      {revealing
+                        ? <ActivityIndicator size={14} color={AppColors.white} />
+                        : <Text style={styles.revealBtnText}>공개하기 🎉</Text>}
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
               <View style={styles.activeCard}>
@@ -456,6 +490,12 @@ const styles = StyleSheet.create({
     fontSize: 13, fontWeight: '700', color: AppColors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5,
   },
+  leaderActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  deleteSprintBtn: {
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1.5, borderColor: AppColors.error,
+  },
+  deleteSprintBtnText: { fontSize: 13, fontWeight: '700', color: AppColors.error },
   revealBtn: {
     backgroundColor: AppColors.primary, borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 6,

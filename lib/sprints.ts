@@ -160,6 +160,26 @@ export async function checkRevealEligibility(sprintId: string): Promise<RevealCh
   return { canReveal: unpraised.length === 0, unpraised };
 }
 
+/** 진행 중 스프린트 삭제 — pairs·praises·nudgeLogs·스프린트 문서 삭제 */
+export async function deleteSprint(sprintId: string): Promise<void> {
+  const { deleteDoc } = await import('firebase/firestore');
+
+  const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
+  await Promise.all(pairsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+  const praisesSnap = await getDocs(
+    query(collection(db, 'praises'), where('sprintId', '==', sprintId)),
+  );
+  await Promise.all(praisesSnap.docs.map((d) => deleteDoc(d.ref)));
+
+  const nudgeSnap = await getDocs(
+    query(collection(db, 'nudgeLogs'), where('sprintId', '==', sprintId)),
+  );
+  await Promise.all(nudgeSnap.docs.map((d) => deleteDoc(d.ref)));
+
+  await deleteDoc(doc(db, 'sprints', sprintId));
+}
+
 /** 스프린트 공개 (status → REVEALED) */
 export async function revealSprint(sprintId: string): Promise<void> {
   await updateDoc(doc(db, 'sprints', sprintId), { status: 'REVEALED' });
