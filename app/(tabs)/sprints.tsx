@@ -78,20 +78,20 @@ export default function SprintsScreen() {
     setActiveSprint(undefined);
     return subscribeToActiveSprint(selectedTeamId, (s) => {
       const active = s?.status === 'ACTIVE' ? s : null;
-      setActiveSprint((prev) => {
-        // 진행 중 → 공개됨/null 전환 시 지난 스프린트 목록 갱신
-        if (prev?.status === 'ACTIVE' && active === null && selectedTeamId) {
-          getPastSprintsPaged(selectedTeamId).then(({ sprints, lastDoc: ld, hasMore: hm }) => {
-            setPastSprints(sprints);
-            setLastDoc(ld);
-            setHasMore(hm);
-          });
-        }
-        return active;
-      });
+      setActiveSprint(active);
       setLoadingActive(false);
     });
   }, [selectedTeamId]);
+
+  // 활성 스프린트가 사라지면(공개/삭제) 지난 목록 첫 페이지 리셋
+  useEffect(() => {
+    if (activeSprint !== null || !selectedTeamId) return;
+    getPastSprintsPaged(selectedTeamId).then(({ sprints, lastDoc: ld, hasMore: hm }) => {
+      setPastSprints(sprints);
+      setLastDoc(ld);
+      setHasMore(hm);
+    });
+  }, [activeSprint]);
 
   // 지난 스프린트 첫 페이지 로드
   useEffect(() => {
@@ -111,7 +111,10 @@ export default function SprintsScreen() {
     if (!selectedTeamId || !hasMore || loadingPast || !lastDoc) return;
     setLoadingPast(true);
     const { sprints, lastDoc: ld, hasMore: hm } = await getPastSprintsPaged(selectedTeamId, lastDoc);
-    setPastSprints((prev) => [...prev, ...sprints]);
+    setPastSprints((prev) => {
+      const ids = new Set(prev.map((s) => s.id));
+      return [...prev, ...sprints.filter((s) => !ids.has(s.id))];
+    });
     setLastDoc(ld);
     setHasMore(hm);
     setLoadingPast(false);
