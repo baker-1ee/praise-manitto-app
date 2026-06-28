@@ -11,7 +11,7 @@ interface AvatarProps {
 export function Avatar({ name, size = 48, style }: AvatarProps) {
   const initials = getInitials(name);
   const bg = getAvatarColor(name ?? '?');
-  const fontSize = size * 0.38;
+  const fontSize = size * (initials.length >= 3 ? 0.28 : initials.length === 2 ? 0.33 : 0.38);
 
   return (
     <View
@@ -21,7 +21,7 @@ export function Avatar({ name, size = 48, style }: AvatarProps) {
         style,
       ]}
     >
-      <Text style={[styles.text, { fontSize }]}>{initials}</Text>
+      <Text style={[styles.text, { fontSize }]} numberOfLines={1} adjustsFontSizeToFit>{initials}</Text>
     </View>
   );
 }

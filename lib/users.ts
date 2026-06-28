@@ -1,5 +1,6 @@
 import { db } from '@/lib/firebase';
 import {
+  deleteField,
   doc,
   setDoc,
   getDoc,
@@ -40,7 +41,12 @@ export async function updateUserProfile(
   uid: string,
   data: Partial<Pick<UserProfile, 'name' | 'bio' | 'avatarUrl'>>,
 ): Promise<void> {
-  await updateDoc(doc(db, 'users', uid), data);
+  const payload: Record<string, unknown> = { ...data };
+  // undefined 값은 Firestore가 거부하므로 deleteField()로 교체
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) payload[key] = deleteField();
+  });
+  await updateDoc(doc(db, 'users', uid), payload);
 }
 
 export function subscribeToUserProfile(
@@ -63,8 +69,10 @@ export function subscribeToUserProfile(
 
 export function getInitials(name?: string | null): string {
   if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const trimmed = name.trim();
+  const parts = trimmed.split(/\s+/);
+  // 공백 없는 한 단어면 최대 3글자
+  if (parts.length === 1) return trimmed.slice(0, 3).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
