@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
-import { subscribeToTeamMembers, MemberWithProfile } from '@/lib/teams';
+import { getTeamMembersWithProfiles } from '@/lib/teams';
 import {
   checkRevealEligibility,
   createSprint,
@@ -39,7 +39,6 @@ export default function SprintsScreen() {
   const isLeader = myMembership?.role === 'LEADER';
 
   const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [members, setMembers] = useState<MemberWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [revealing, setRevealing] = useState(false);
@@ -70,11 +69,6 @@ export default function SprintsScreen() {
     return unsub;
   }, [selectedTeamId]);
 
-  // 리더인 경우 멤버 목록 실시간 구독 (멤버 변동 즉시 반영)
-  useEffect(() => {
-    if (!selectedTeamId || !isLeader) { setMembers([]); return; }
-    return subscribeToTeamMembers(selectedTeamId, setMembers);
-  }, [selectedTeamId, isLeader]);
 
   const activeSprint = sprints.find((s) => s.status === 'ACTIVE') ?? null;
   const pastSprints = sprints.filter((s) => s.status !== 'ACTIVE');
@@ -127,11 +121,11 @@ export default function SprintsScreen() {
     setSprintError('');
     if (!sprintName.trim()) { setSprintError('스프린트 이름을 입력해주세요.'); return; }
     if (endDate <= startDate) { setSprintError('종료일은 시작일 이후여야 합니다.'); return; }
-    const memberIds = members.map((m) => m.userId);
-    if (memberIds.length < 2) { setSprintError('팀원이 최소 2명 이상이어야 합니다.'); return; }
 
     setCreatingSprint(true);
     try {
+      const currentMembers = await getTeamMembersWithProfiles(selectedTeamId!);
+      const memberIds = currentMembers.map((m) => m.userId);
       await createSprint({
         teamId: selectedTeamId!,
         name: sprintName.trim(),

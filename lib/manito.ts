@@ -4,7 +4,7 @@
 export function assignManito(
   userIds: string[],
 ): Array<{ manitoId: string; targetId: string }> {
-  if (userIds.length < 2) throw new Error('최소 2명 이상 필요합니다.');
+  if (userIds.length < 2) throw new Error('팀원이 최소 2명 이상이어야 합니다.');
 
   let shuffled: string[];
   let attempts = 0;

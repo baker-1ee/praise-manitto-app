@@ -61,8 +61,6 @@ export async function createSprint(params: {
     query(collection(db, 'sprints'), where('teamId', '==', teamId), where('status', '==', 'ACTIVE')),
   );
   if (!activeSnap.empty) throw new Error('이미 진행 중인 스프린트가 있습니다.');
-  if (memberIds.length < 2) throw new Error('팀원이 최소 2명 이상이어야 합니다.');
-
   const pairs = assignManito(memberIds);
   const batch = writeBatch(db);
 
