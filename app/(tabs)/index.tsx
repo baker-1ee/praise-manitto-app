@@ -185,11 +185,24 @@ export default function HomeScreen() {
         {/* 스프린트 공개됨 */}
         {!isLoading && activeSprint?.status === 'REVEALED' && (
           <View style={styles.sprintSection}>
+            {/* 진행 중 헤더와 동일한 구조 */}
+            <View style={styles.sprintHeader}>
+              <View style={styles.sprintInfo}>
+                <Text style={styles.sprintName}>{activeSprint.name}</Text>
+                <Text style={styles.sprintDate}>
+                  {formatSprintDate(activeSprint.startDate)} ~ {formatSprintDate(activeSprint.endDate)}
+                </Text>
+              </View>
+              <View style={styles.revealedBadge}>
+                <Text style={styles.revealedBadgeText}>공개됨</Text>
+              </View>
+            </View>
+
             <TouchableOpacity style={styles.revealedBanner} onPress={() => router.push(`/reveal/${activeSprint.id}`)} activeOpacity={0.8}>
               <Text style={styles.revealedBannerEmoji}>🎊</Text>
               <View style={styles.revealedBannerInfo}>
-                <Text style={styles.revealedBannerTitle}>스프린트가 공개됐어요!</Text>
-                <Text style={styles.revealedBannerSub}>{activeSprint.name}</Text>
+                <Text style={styles.revealedBannerTitle}>마니또가 밝혀졌어요!</Text>
+                <Text style={styles.revealedBannerSub}>팀원들의 칭찬 내용을 확인해보세요</Text>
               </View>
               <Text style={styles.revealedBannerLink}>탭해서 결과 보기 →</Text>
             </TouchableOpacity>
@@ -286,6 +299,8 @@ const styles = StyleSheet.create({
   sprintDate: { fontSize: 12, color: AppColors.textMuted },
   activeBadge: { backgroundColor: '#dcfce7', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   activeBadgeText: { fontSize: 12, fontWeight: '600', color: '#16a34a' },
+  revealedBadge: { backgroundColor: '#fef9c3', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
+  revealedBadgeText: { fontSize: 12, fontWeight: '600', color: '#a16207' },
 
   // 통계
   statsRow: { flexDirection: 'row', gap: 10 },
