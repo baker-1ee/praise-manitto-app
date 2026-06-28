@@ -189,9 +189,9 @@ export default function HomeScreen() {
               <Text style={styles.revealedBannerEmoji}>🎊</Text>
               <View style={styles.revealedBannerInfo}>
                 <Text style={styles.revealedBannerTitle}>스프린트가 공개됐어요!</Text>
-                <Text style={styles.revealedBannerSub}>{activeSprint.name} · 마니또가 공개되었습니다</Text>
+                <Text style={styles.revealedBannerSub}>{activeSprint.name}</Text>
               </View>
-              <Text style={styles.revealedBannerLink}>결과 보기 →</Text>
+              <Text style={styles.revealedBannerLink}>탭해서 결과 보기 →</Text>
             </TouchableOpacity>
 
             <View style={styles.statsRow}>
@@ -313,15 +313,17 @@ const styles = StyleSheet.create({
 
   // 공개된 스프린트 배너
   revealedBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fef9c3', borderRadius: 14, padding: 16,
+    height: 200,
+    borderRadius: 16, padding: 20,
+    backgroundColor: '#fef9c3',
     borderWidth: 1, borderColor: '#fde047',
+    alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  revealedBannerEmoji: { fontSize: 28 },
-  revealedBannerInfo: { flex: 1, gap: 2 },
-  revealedBannerTitle: { fontSize: 15, fontWeight: '700', color: AppColors.textPrimary },
-  revealedBannerSub: { fontSize: 12, color: AppColors.textMuted },
-  revealedBannerLink: { fontSize: 13, fontWeight: '700', color: AppColors.primary },
+  revealedBannerEmoji: { fontSize: 36, marginBottom: 4 },
+  revealedBannerInfo: { alignItems: 'center', gap: 4 },
+  revealedBannerTitle: { fontSize: 18, fontWeight: '700', color: AppColors.textPrimary, letterSpacing: -0.3 },
+  revealedBannerSub: { fontSize: 13, color: AppColors.textMuted },
+  revealedBannerLink: { fontSize: 13, fontWeight: '700', color: AppColors.primary, marginTop: 4 },
 
   // 빈 상태
   emptySection: { paddingHorizontal: 20, paddingTop: 8 },
