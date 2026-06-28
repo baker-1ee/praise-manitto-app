@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -28,9 +27,10 @@ import {
 } from '@/lib/sprints';
 import { getUserProfile, UserProfile } from '@/lib/users';
 import {
-  getPraiseStats,
   hasNudgedToday,
   recordNudge,
+  subscribeToReceivedPraises,
+  subscribeToSentPraises,
 } from '@/lib/praises';
 
 export default function HomeScreen() {
@@ -69,13 +69,17 @@ export default function HomeScreen() {
     getMyPair(activeSprint.id, user.uid).then(setMyPair);
   }, [activeSprint?.id, user?.uid]);
 
-  // 탭 포커스 시 stats 갱신
-  useFocusEffect(
-    useCallback(() => {
-      if (!user || !activeSprint) return;
-      getPraiseStats(activeSprint.id, user.uid).then(setStats);
-    }, [activeSprint?.id, user?.uid]),
-  );
+  // 칭찬 통계 실시간 구독
+  useEffect(() => {
+    if (!user || !activeSprint) { setStats({ sent: 0, received: 0 }); return; }
+    const unsubSent = subscribeToSentPraises(activeSprint.id, user.uid, (p) =>
+      setStats((prev) => ({ ...prev, sent: p.length })),
+    );
+    const unsubReceived = subscribeToReceivedPraises(activeSprint.id, user.uid, (p) =>
+      setStats((prev) => ({ ...prev, received: p.length })),
+    );
+    return () => { unsubSent(); unsubReceived(); };
+  }, [activeSprint?.id, user?.uid]);
 
   // 마니또 대상 프로필
   useEffect(() => {
