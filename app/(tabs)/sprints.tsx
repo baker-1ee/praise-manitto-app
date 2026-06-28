@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -78,15 +79,25 @@ export default function SprintsScreen() {
   const activeSprint = sprints.find((s) => s.status === 'ACTIVE') ?? null;
   const pastSprints = sprints.filter((s) => s.status !== 'ACTIVE');
 
-  // 지난 스프린트 칭찬 수 일괄 조회
+  // 스프린트 칭찬 수 조회 (활성 + 지난)
   useEffect(() => {
-    if (pastSprints.length === 0) return;
-    pastSprints.forEach(async (s) => {
+    const targets = [...(activeSprint ? [activeSprint] : []), ...pastSprints];
+    targets.forEach(async (s) => {
       if (praiseCounts[s.id] !== undefined) return;
       const count = await getSprintPraiseCount(s.id);
       setPraiseCounts((prev) => ({ ...prev, [s.id]: count }));
     });
-  }, [pastSprints.map((s) => s.id).join(',')]);
+  }, [sprints.map((s) => s.id).join(',')]);
+
+  // 진행 중 스프린트 칭찬 수는 탭 포커스마다 갱신
+  useFocusEffect(
+    useCallback(() => {
+      if (!activeSprint) return;
+      getSprintPraiseCount(activeSprint.id).then((count) =>
+        setPraiseCounts((prev) => ({ ...prev, [activeSprint.id]: count })),
+      );
+    }, [activeSprint?.id]),
+  );
 
   const handleOpenParticipants = async (sprint: Sprint) => {
     setLoadingParticipants(true);
@@ -271,8 +282,19 @@ export default function SprintsScreen() {
                     {formatSprintDate(activeSprint.startDate)} ~ {formatSprintDate(activeSprint.endDate)}
                   </Text>
                 </View>
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>진행 중</Text>
+                <View style={styles.pastBadgeRow}>
+                  {praiseCounts[activeSprint.id] !== undefined && (
+                    <TouchableOpacity
+                      style={styles.praiseBadge}
+                      onPress={() => handleOpenParticipants(activeSprint)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.praiseBadgeText}>💌 {praiseCounts[activeSprint.id]}</Text>
+                    </TouchableOpacity>
+                  )}
+                  <View style={styles.activeBadge}>
+                    <Text style={styles.activeBadgeText}>진행 중</Text>
+                  </View>
                 </View>
               </View>
             </View>
