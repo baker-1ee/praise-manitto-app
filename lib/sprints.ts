@@ -129,7 +129,7 @@ export async function getTeamSprints(teamId: string): Promise<Sprint[]> {
     .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
 }
 
-const PAST_PAGE_SIZE = 10;
+const PAST_PAGE_SIZE = 5;
 
 /** 지난 스프린트 페이징 조회 (최신순, 10개씩)
  *  복합 인덱스 필요: teamId ASC + createdAt DESC */
