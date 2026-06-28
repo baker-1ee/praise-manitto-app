@@ -7,7 +7,9 @@ import {
   onSnapshot,
   orderBy,
   query,
+  QueryDocumentSnapshot,
   serverTimestamp,
+  startAfter,
   Timestamp,
   updateDoc,
   where,
@@ -125,6 +127,29 @@ export async function getTeamSprints(teamId: string): Promise<Sprint[]> {
   return snap.docs
     .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
     .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+}
+
+const PAST_PAGE_SIZE = 10;
+
+/** 지난 스프린트 페이징 조회 (최신순, 10개씩)
+ *  복합 인덱스 필요: teamId ASC + createdAt DESC */
+export async function getPastSprintsPaged(
+  teamId: string,
+  cursor?: QueryDocumentSnapshot,
+): Promise<{ sprints: Sprint[]; lastDoc: QueryDocumentSnapshot | null; hasMore: boolean }> {
+  const constraints = [
+    where('teamId', '==', teamId),
+    orderBy('createdAt', 'desc'),
+    limit(PAST_PAGE_SIZE + 1),
+    ...(cursor ? [startAfter(cursor)] : []),
+  ];
+  const snap = await getDocs(query(collection(db, 'sprints'), ...constraints));
+  const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }));
+  // ACTIVE 제외 (subscribeToActiveSprint에서 별도 관리)
+  const past = all.filter((s) => s.status !== 'ACTIVE');
+  const hasMore = snap.docs.length > PAST_PAGE_SIZE;
+  const lastDoc = hasMore ? snap.docs[snap.docs.length - 2] : (snap.docs[snap.docs.length - 1] ?? null);
+  return { sprints: past.slice(0, PAST_PAGE_SIZE), lastDoc, hasMore };
 }
 
 /** 직전 공개 스프린트 조회 — 클라이언트 필터/정렬 */

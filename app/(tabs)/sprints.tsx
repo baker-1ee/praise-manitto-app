@@ -23,11 +23,13 @@ import {
   createSprint,
   deleteSprint,
   formatSprintDate,
+  getPastSprintsPaged,
   getSprintParticipants,
   revealSprint,
   Sprint,
-  subscribeToTeamSprints,
+  subscribeToActiveSprint,
 } from '@/lib/sprints';
+import { QueryDocumentSnapshot } from 'firebase/firestore';
 import { getSprintPraiseCount } from '@/lib/praises';
 import { getUserProfile } from '@/lib/users';
 import { Input } from '@/components/ui/input';
@@ -42,8 +44,12 @@ export default function SprintsScreen() {
   const myMembership = myTeams.find((t) => t.id === selectedTeamId);
   const isLeader = myMembership?.role === 'LEADER';
 
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
+  const [pastSprints, setPastSprints] = useState<Sprint[]>([]);
+  const [loadingActive, setLoadingActive] = useState(true);
+  const [loadingPast, setLoadingPast] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -65,31 +71,50 @@ export default function SprintsScreen() {
   const [creatingSprint, setCreatingSprint] = useState(false);
   const [sprintError, setSprintError] = useState('');
 
-  // 스프린트 목록 실시간 구독
+  // 활성 스프린트 실시간 구독
   useEffect(() => {
-    if (!selectedTeamId) { setSprints([]); setLoading(false); return; }
-    setLoading(true);
-    setSprints([]);
-    const unsub = subscribeToTeamSprints(selectedTeamId, (s) => {
-      setSprints(s);
-      setLoading(false);
+    if (!selectedTeamId) { setActiveSprint(null); setLoadingActive(false); return; }
+    setLoadingActive(true);
+    setActiveSprint(undefined);
+    return subscribeToActiveSprint(selectedTeamId, (s) => {
+      setActiveSprint(s);
+      setLoadingActive(false);
     });
-    return unsub;
   }, [selectedTeamId]);
 
-
-  const activeSprint = sprints.find((s) => s.status === 'ACTIVE') ?? null;
-  const pastSprints = sprints.filter((s) => s.status !== 'ACTIVE');
-
-  // 스프린트 칭찬 수 조회 (활성 + 지난)
+  // 지난 스프린트 첫 페이지 로드
   useEffect(() => {
-    const targets = [...(activeSprint ? [activeSprint] : []), ...pastSprints];
-    targets.forEach(async (s) => {
+    if (!selectedTeamId) { setPastSprints([]); setHasMore(false); setLastDoc(null); return; }
+    setLoadingPast(true);
+    setPastSprints([]);
+    setLastDoc(null);
+    getPastSprintsPaged(selectedTeamId).then(({ sprints, lastDoc: ld, hasMore: hm }) => {
+      setPastSprints(sprints);
+      setLastDoc(ld);
+      setHasMore(hm);
+      setLoadingPast(false);
+    });
+  }, [selectedTeamId]);
+
+  const loadMore = async () => {
+    if (!selectedTeamId || !hasMore || loadingPast || !lastDoc) return;
+    setLoadingPast(true);
+    const { sprints, lastDoc: ld, hasMore: hm } = await getPastSprintsPaged(selectedTeamId, lastDoc);
+    setPastSprints((prev) => [...prev, ...sprints]);
+    setLastDoc(ld);
+    setHasMore(hm);
+    setLoadingPast(false);
+  };
+
+
+  // 새로 로드된 지난 스프린트 칭찬 수 조회
+  useEffect(() => {
+    pastSprints.forEach(async (s) => {
       if (praiseCounts[s.id] !== undefined) return;
       const count = await getSprintPraiseCount(s.id);
       setPraiseCounts((prev) => ({ ...prev, [s.id]: count }));
     });
-  }, [sprints.map((s) => s.id).join(',')]);
+  }, [pastSprints.map((s) => s.id).join(',')]);
 
   // 진행 중 스프린트 칭찬 수는 탭 포커스마다 갱신
   useFocusEffect(
@@ -226,7 +251,7 @@ export default function SprintsScreen() {
         </View>
       </View>
 
-      {loading ? (
+      {loadingActive ? (
         <View style={styles.center}>
           <ActivityIndicator color={AppColors.primary} />
         </View>
@@ -380,8 +405,20 @@ export default function SprintsScreen() {
             </View>
           )}
 
+          {/* 더 보기 */}
+          {hasMore && (
+            <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMore} disabled={loadingPast}>
+              {loadingPast
+                ? <ActivityIndicator size="small" color={AppColors.primary} />
+                : <Text style={styles.loadMoreText}>더 보기</Text>}
+            </TouchableOpacity>
+          )}
+          {loadingPast && !hasMore && pastSprints.length === 0 && (
+            <ActivityIndicator color={AppColors.primary} style={{ marginTop: 8 }} />
+          )}
+
           {/* 빈 상태 */}
-          {sprints.length === 0 && !showCreateForm && (
+          {!activeSprint && pastSprints.length === 0 && !showCreateForm && !loadingPast && (
             <View style={styles.emptyBox}>
               <Text style={styles.emptyEmoji}>📋</Text>
               <Text style={styles.emptyTitle}>아직 스프린트가 없어요</Text>
@@ -534,6 +571,15 @@ const styles = StyleSheet.create({
   pastBadgeText: { fontSize: 11, fontWeight: '600' },
   pastBadgeTextRevealed: { color: AppColors.primary },
   pastBadgeTextClosed: { color: AppColors.textMuted },
+
+  // 더 보기
+  loadMoreBtn: {
+    alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: AppColors.borderLight,
+    backgroundColor: AppColors.white,
+  },
+  loadMoreText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
 
   // 빈 상태
   emptyBox: { alignItems: 'center', paddingVertical: 60, gap: 8 },
