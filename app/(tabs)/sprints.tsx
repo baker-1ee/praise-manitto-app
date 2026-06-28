@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -70,11 +71,13 @@ export default function SprintsScreen() {
     return unsub;
   }, [selectedTeamId]);
 
-  // 리더인 경우 멤버 목록 로드 (스프린트 생성 시 필요)
-  useEffect(() => {
-    if (!selectedTeamId || !isLeader) { setMembers([]); return; }
-    getTeamMembersWithProfiles(selectedTeamId).then(setMembers);
-  }, [selectedTeamId, isLeader]);
+  // 리더인 경우 멤버 목록 로드 — 탭 포커스마다 갱신 (멤버 변동 반영)
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectedTeamId || !isLeader) { setMembers([]); return; }
+      getTeamMembersWithProfiles(selectedTeamId).then(setMembers);
+    }, [selectedTeamId, isLeader]),
+  );
 
   const activeSprint = sprints.find((s) => s.status === 'ACTIVE') ?? null;
   const pastSprints = sprints.filter((s) => s.status !== 'ACTIVE');
