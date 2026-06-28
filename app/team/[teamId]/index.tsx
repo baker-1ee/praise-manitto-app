@@ -15,6 +15,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
 import {
+  deleteTeam,
   getTeam,
   getTeamMembersWithProfiles,
   leaveMembership,
@@ -39,6 +40,7 @@ export default function TeamManageScreen() {
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!teamId) return;
@@ -82,6 +84,31 @@ export default function TeamManageScreen() {
         },
       },
     ]);
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      '팀을 정말 삭제할까요?',
+      `'${team?.name}' 팀을 삭제하면 모든 스프린트, 칭찬 기록, 팀원 정보가 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '팀 삭제',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteTeam(teamId!);
+              router.dismissAll();
+            } catch {
+              Alert.alert('오류', '팀 삭제에 실패했습니다. 다시 시도해주세요.');
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleLeave = () => {
@@ -174,6 +201,17 @@ export default function TeamManageScreen() {
               {leaving
                 ? <ActivityIndicator size="small" color={AppColors.error} />
                 : <Text style={styles.leaveText}>팀 나가기</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── 팀 삭제 (LEADER만) ── */}
+        {isLeader && (
+          <View style={styles.leaveSection}>
+            <TouchableOpacity style={styles.leaveButton} onPress={handleDelete} disabled={deleting}>
+              {deleting
+                ? <ActivityIndicator size="small" color={AppColors.error} />
+                : <Text style={styles.leaveText}>팀 삭제</Text>}
             </TouchableOpacity>
           </View>
         )}

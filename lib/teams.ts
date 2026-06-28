@@ -174,6 +174,46 @@ export async function leaveMembership(membershipId: string): Promise<void> {
   await deleteDoc(doc(db, 'memberships', membershipId));
 }
 
+/** 팀 삭제 (LEADER 전용) — 스프린트·pairs·칭찬·nudgeLogs·멤버십 전체 삭제 */
+export async function deleteTeam(teamId: string): Promise<void> {
+  // 1. 해당 팀의 스프린트 목록
+  const sprintsSnap = await getDocs(
+    query(collection(db, 'sprints'), where('teamId', '==', teamId)),
+  );
+
+  for (const sprintDoc of sprintsSnap.docs) {
+    const sprintId = sprintDoc.id;
+
+    // 1-a. pairs 서브컬렉션
+    const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
+    await Promise.all(pairsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+    // 1-b. praises (sprintId 기준)
+    const praisesSnap = await getDocs(
+      query(collection(db, 'praises'), where('sprintId', '==', sprintId)),
+    );
+    await Promise.all(praisesSnap.docs.map((d) => deleteDoc(d.ref)));
+
+    // 1-c. nudgeLogs (sprintId 기준)
+    const nudgeSnap = await getDocs(
+      query(collection(db, 'nudgeLogs'), where('sprintId', '==', sprintId)),
+    );
+    await Promise.all(nudgeSnap.docs.map((d) => deleteDoc(d.ref)));
+
+    // 1-d. 스프린트 문서
+    await deleteDoc(sprintDoc.ref);
+  }
+
+  // 2. 멤버십 전체 삭제
+  const membershipsSnap = await getDocs(
+    query(collection(db, 'memberships'), where('teamId', '==', teamId)),
+  );
+  await Promise.all(membershipsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+  // 3. 팀 문서 삭제
+  await deleteDoc(doc(db, 'teams', teamId));
+}
+
 /** 초대 코드 재발급 (LEADER 전용) */
 export async function regenerateInviteCode(teamId: string): Promise<string> {
   const newCode = generateInviteCode();
