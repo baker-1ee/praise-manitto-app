@@ -42,6 +42,14 @@
 
 ---
 
+### BUG-004 ✅ 해결됨
+**제목**: 홈 탭 칭찬 통계 카드 — 탭 재진입 시 카운트 갱신 안 됨  
+**증상**: 칭찬을 보내거나 받은 후 다른 탭 갔다가 홈 탭으로 돌아와도 "내가 보낸 칭찬" / "내가 받은 칭찬" 숫자가 업데이트되지 않음  
+**원인**: `getPraiseStats` 호출이 `activeSprint?.id` / `user?.uid` 변경 시에만 트리거 → 탭 재진입 시 재호출 없음  
+**수정**: `useFocusEffect` + `useCallback` 으로 탭 포커스될 때마다 `getPraiseStats` 재호출
+
+---
+
 ## 기능 요청 (Feature Requests)
 
 ### FEAT-001 ✅ 해결됨

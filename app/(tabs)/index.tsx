@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -66,8 +67,15 @@ export default function HomeScreen() {
       return;
     }
     getMyPair(activeSprint.id, user.uid).then(setMyPair);
-    getPraiseStats(activeSprint.id, user.uid).then(setStats);
   }, [activeSprint?.id, user?.uid]);
+
+  // 탭 포커스 시 stats 갱신
+  useFocusEffect(
+    useCallback(() => {
+      if (!user || !activeSprint) return;
+      getPraiseStats(activeSprint.id, user.uid).then(setStats);
+    }, [activeSprint?.id, user?.uid]),
+  );
 
   // 마니또 대상 프로필
   useEffect(() => {
