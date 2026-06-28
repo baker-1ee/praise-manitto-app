@@ -71,13 +71,24 @@ export default function SprintsScreen() {
   const [creatingSprint, setCreatingSprint] = useState(false);
   const [sprintError, setSprintError] = useState('');
 
-  // 활성 스프린트 실시간 구독
+  // 활성 스프린트 실시간 구독 — ACTIVE만 "진행 중"으로 취급
   useEffect(() => {
     if (!selectedTeamId) { setActiveSprint(null); setLoadingActive(false); return; }
     setLoadingActive(true);
     setActiveSprint(undefined);
     return subscribeToActiveSprint(selectedTeamId, (s) => {
-      setActiveSprint(s);
+      const active = s?.status === 'ACTIVE' ? s : null;
+      setActiveSprint((prev) => {
+        // 진행 중 → 공개됨/null 전환 시 지난 스프린트 목록 갱신
+        if (prev?.status === 'ACTIVE' && active === null && selectedTeamId) {
+          getPastSprintsPaged(selectedTeamId).then(({ sprints, lastDoc: ld, hasMore: hm }) => {
+            setPastSprints(sprints);
+            setLastDoc(ld);
+            setHasMore(hm);
+          });
+        }
+        return active;
+      });
       setLoadingActive(false);
     });
   }, [selectedTeamId]);
