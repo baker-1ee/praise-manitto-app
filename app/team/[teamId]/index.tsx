@@ -221,7 +221,7 @@ export default function TeamManageScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fafafa' },
+  safe: { flex: 1, backgroundColor: '#fafafc' },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { padding: 20, gap: 8, paddingBottom: 40 },
 

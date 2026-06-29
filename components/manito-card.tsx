@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -7,7 +7,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Avatar } from '@/components/avatar';
-import { AppColors } from '@/constants/theme';
 
 interface ManitoTarget {
   name: string;
@@ -23,7 +22,6 @@ export function ManitoCard({ target }: ManitoCardProps) {
   const progress = useSharedValue(0);
   const [flipped, setFlipped] = useState(false);
 
-  // opacity 기반 크로스플랫폼 플립 (backfaceVisibility Android 미지원 대응)
   const frontStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 0.45, 0.5], [1, 1, 0], 'clamp'),
     transform: [{ rotateY: `${interpolate(progress.value, [0, 1], [0, 180])}deg` }],
@@ -45,27 +43,35 @@ export function ManitoCard({ target }: ManitoCardProps) {
     <TouchableOpacity onPress={handleFlip} activeOpacity={0.95} style={styles.container}>
       {/* 앞면 */}
       <Animated.View style={[styles.card, styles.front, frontStyle]}>
-        <Text style={styles.frontEmoji}>💌</Text>
-        <Text style={styles.frontTitle}>마니또가 배정됐어요!</Text>
-        <Text style={styles.frontHint}>탭해서 확인하기</Text>
+        <Image
+          source={require('@/assets/images/whale question.png')}
+          style={styles.frontWhale}
+          resizeMode="contain"
+        />
+        <View style={styles.frontTextArea}>
+          <Text style={styles.frontTitle}>마니또가 배정됐어요</Text>
+          <View style={styles.frontHintRow}>
+            <Text style={styles.frontHint}>탭해서 확인하기</Text>
+          </View>
+        </View>
       </Animated.View>
 
       {/* 뒷면 */}
       <Animated.View style={[styles.card, styles.back, backStyle]}>
-        <Avatar name={target?.name} size={60} />
-        <Text style={styles.backName}>{target?.name ?? '...'}님</Text>
+        <Avatar name={target?.name} size={56} />
+        <Text style={styles.backName}>{target?.name ?? '...'}</Text>
         {target?.bio ? (
           <Text style={styles.backBio}>{target.bio}</Text>
         ) : null}
         <View style={styles.backLabel}>
-          <Text style={styles.backLabelText}>이번 스프린트 내 마니또 대상</Text>
+          <Text style={styles.backLabelText}>이번 스프린트 마니또 대상</Text>
         </View>
       </Animated.View>
     </TouchableOpacity>
   );
 }
 
-const CARD_HEIGHT = 200;
+const CARD_HEIGHT = 196;
 
 const styles = StyleSheet.create({
   container: {
@@ -75,56 +81,82 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: CARD_HEIGHT,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     padding: 20,
   },
   front: {
-    backgroundColor: AppColors.primary,
+    backgroundColor: '#2997FF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 24,
+    gap: 0,
   },
   back: {
-    backgroundColor: AppColors.white,
-    borderWidth: 1.5,
-    borderColor: AppColors.border,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#DDE3EC',
   },
 
   // 앞면
-  frontEmoji: { fontSize: 36, marginBottom: 4 },
+  frontWhale: {
+    width: 120,
+    height: 120,
+    tintColor: '#fff',
+    opacity: 0.9,
+  },
+  frontTextArea: {
+    flex: 1,
+    gap: 10,
+    alignItems: 'flex-start',
+  },
   frontTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    color: AppColors.white,
+    color: '#fff',
     letterSpacing: -0.3,
+    lineHeight: 24,
+  },
+  frontHintRow: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   frontHint: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.55)',
+    letterSpacing: 0.2,
   },
 
   // 뒷면
   backName: {
     fontSize: 20,
     fontWeight: '800',
-    color: AppColors.textPrimary,
+    color: '#1A2F4A',
     letterSpacing: -0.3,
+    marginTop: 2,
   },
   backBio: {
     fontSize: 13,
-    color: AppColors.textMuted,
+    color: '#8A9BB0',
     textAlign: 'center',
   },
   backLabel: {
-    marginTop: 4,
+    marginTop: 6,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    backgroundColor: AppColors.primaryLight,
+    backgroundColor: '#E8F1FB',
     borderRadius: 20,
   },
   backLabelText: {
     fontSize: 11,
     fontWeight: '600',
-    color: AppColors.primary,
+    color: '#0071e3',
+    letterSpacing: 0.1,
   },
 });

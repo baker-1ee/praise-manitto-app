@@ -75,7 +75,7 @@ function RootNavigator() {
             headerTintColor: AppColors.primary,
             headerBackTitle: '팀',
             headerShadowVisible: false,
-            headerStyle: { backgroundColor: '#fafafa' },
+            headerStyle: { backgroundColor: '#fafafc' },
           }}
         />
       </Stack>

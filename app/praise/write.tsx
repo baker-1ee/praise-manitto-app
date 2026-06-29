@@ -119,7 +119,7 @@ export default function PraiseWriteScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <Stack.Screen options={{ title: '칭찬 쓰기', headerShown: true, headerTintColor: AppColors.primary, headerShadowVisible: false, headerStyle: { backgroundColor: '#fafafa' } }} />
+      <Stack.Screen options={{ title: '칭찬 쓰기', headerShown: true, headerTintColor: AppColors.primary, headerShadowVisible: false, headerStyle: { backgroundColor: '#fafafc' } }} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -200,7 +200,7 @@ export default function PraiseWriteScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fafafa' },
+  safe: { flex: 1, backgroundColor: '#fafafc' },
   scroll: { padding: 20, gap: 24, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyEmoji: { fontSize: 48 },
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   categoryChip: {
     paddingHorizontal: 14, paddingVertical: 7,
     borderRadius: 20, borderWidth: 1.5,
-    borderColor: AppColors.border, backgroundColor: AppColors.white,
+    borderColor: AppColors.border, backgroundColor: '#fafafc',
   },
   categoryChipSelected: { backgroundColor: AppColors.primary, borderColor: AppColors.primary },
   categoryChipText: { fontSize: 13, fontWeight: '600', color: AppColors.textMuted },

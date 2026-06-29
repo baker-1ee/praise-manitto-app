@@ -141,7 +141,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fafafc',
   },
   flex: {
     flex: 1,

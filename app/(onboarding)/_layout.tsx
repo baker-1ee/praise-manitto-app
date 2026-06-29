@@ -8,7 +8,7 @@ export default function OnboardingLayout() {
         headerShown: true,
         headerTintColor: AppColors.primary,
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: '#ffffff' },
+        headerStyle: { backgroundColor: '#fafafc' },
         headerBackTitle: '뒤로',
         animation: 'slide_from_right',
       }}

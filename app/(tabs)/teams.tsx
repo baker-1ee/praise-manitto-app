@@ -84,7 +84,7 @@ export default function TeamsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fafafa' },
+  safe: { flex: 1, backgroundColor: '#fafafc' },
   container: { flex: 1, paddingHorizontal: 20 },
   header: {
     flexDirection: 'row',
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: AppColors.white,
+    backgroundColor: '#ffffff',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   emptyBtnSecondary: {
-    backgroundColor: AppColors.white,
+    backgroundColor: '#ffffff',
     borderWidth: 1.5,
     borderColor: AppColors.border,
   },

@@ -194,7 +194,7 @@ function PraiseCard({ praise, tab, isRevealed }: {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fafafa' },
+  safe: { flex: 1, backgroundColor: '#fafafc' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

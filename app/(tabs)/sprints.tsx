@@ -494,7 +494,7 @@ export default function SprintsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fafafa' },
+  safe: { flex: 1, backgroundColor: '#fafafc' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     paddingVertical: 12, borderRadius: 10,
     borderWidth: 1, borderColor: AppColors.borderLight,
-    backgroundColor: AppColors.white,
+    backgroundColor: '#fafafc',
   },
   loadMoreText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
 

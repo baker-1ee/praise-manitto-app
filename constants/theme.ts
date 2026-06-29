@@ -1,28 +1,27 @@
 import { Platform } from 'react-native';
 
-// 웹 서비스와 동일한 purple/violet 팔레트
 export const AppColors = {
-  primary: '#7c3aed',
-  primaryDark: '#5b21b6',
-  primaryLight: '#f0ebff',
-  primaryMid: '#ede9fe',
-  textPrimary: '#1c1b1f',
-  textMuted: '#5b5080',
-  textSecondary: '#9c95b8',
-  border: 'rgba(124,58,237,0.15)',
-  borderLight: 'rgba(124,58,237,0.08)',
+  primary: '#0071e3',
+  primaryDark: '#0066cc',
+  primaryLight: '#EAF2FF',
+  primaryMid: '#D4E8FF',
+  textPrimary: '#1A2F4A',
+  textMuted: '#5A6E84',
+  textSecondary: '#8A9BB8',
+  border: 'rgba(0,113,227,0.2)',
+  borderLight: 'rgba(0,113,227,0.1)',
   error: '#dc2626',
   errorLight: '#fef2f2',
   success: '#16a34a',
   white: '#ffffff',
-  backgroundDark: '#0f0f12',
-  cardShadow: 'rgba(124,58,237,0.06)',
+  backgroundDark: '#0a1929',
+  cardShadow: 'rgba(0,113,227,0.06)',
 } as const;
 
 export const Colors = {
   light: {
-    text: '#1c1b1f',
-    background: '#fafafa',
+    text: '#1A2F4A',
+    background: '#fafafc',
     tint: AppColors.primary,
     icon: AppColors.textMuted,
     tabIconDefault: AppColors.textSecondary,
@@ -31,14 +30,14 @@ export const Colors = {
     border: AppColors.border,
   },
   dark: {
-    text: '#ecedee',
+    text: '#e8f0fb',
     background: AppColors.backgroundDark,
-    tint: '#c4b5fd',
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: '#c4b5fd',
-    card: '#1a1a24',
-    border: 'rgba(196,181,253,0.15)',
+    tint: '#2997ff',
+    icon: '#8A9BB8',
+    tabIconDefault: '#8A9BB8',
+    tabIconSelected: '#2997ff',
+    card: '#0d1f35',
+    border: 'rgba(41,151,255,0.15)',
   },
 } as const;
 

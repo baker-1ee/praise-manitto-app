@@ -52,7 +52,7 @@ export default function RevealScreen() {
           headerShown: true,
           headerTintColor: AppColors.primary,
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: '#fafafa' },
+          headerStyle: { backgroundColor: '#fafafc' },
         }}
       />
 
@@ -170,7 +170,7 @@ function PairCard({ pair, expanded, onToggle }: {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fafafa' },
+  safe: { flex: 1, backgroundColor: '#fafafc' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingEmoji: { fontSize: 52 },
   loadingText: { fontSize: 16, color: AppColors.textMuted },
