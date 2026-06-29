@@ -49,7 +49,7 @@ export function ManitoCard({ target }: ManitoCardProps) {
           resizeMode="contain"
         />
         <View style={styles.frontTextArea}>
-          <Text style={styles.frontTitle}>마니또가 배정됐어요</Text>
+          <Text style={styles.frontTitle}>나의 비밀 미션</Text>
           <View style={styles.frontHintRow}>
             <Text style={styles.frontHint}>탭해서 확인하기</Text>
           </View>
@@ -64,7 +64,7 @@ export function ManitoCard({ target }: ManitoCardProps) {
           <Text style={styles.backBio}>{target.bio}</Text>
         ) : null}
         <View style={styles.backLabel}>
-          <Text style={styles.backLabelText}>이번 스프린트 마니또 대상</Text>
+          <Text style={styles.backLabelText}>작은 것도 좋아요. 숨은 매력을 발견해 칭찬해보아요</Text>
         </View>
       </Animated.View>
     </TouchableOpacity>
@@ -88,25 +88,25 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   front: {
-    backgroundColor: '#2997FF',
+    backgroundColor: '#ffffff',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: '#DCE8F8',
     gap: 0,
   },
   back: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#DDE3EC',
+    borderColor: '#DCE8F8',
   },
 
   // 앞면
   frontWhale: {
-    width: 120,
-    height: 120,
-    tintColor: '#fff',
-    opacity: 0.9,
+    width: 170,
+    height: 170,
   },
   frontTextArea: {
     flex: 1,
@@ -116,20 +116,20 @@ const styles = StyleSheet.create({
   frontTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#fff',
+    color: '#1A2F4A',
     letterSpacing: -0.3,
     lineHeight: 24,
   },
   frontHintRow: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderColor: 'rgba(0,113,227,0.25)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
   frontHint: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.55)',
+    color: '#0071e3',
     letterSpacing: 0.2,
   },
 
