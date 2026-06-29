@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -196,11 +197,13 @@ export default function HomeScreen() {
             </View>
 
             <TouchableOpacity style={styles.revealedBanner} onPress={() => router.push(`/reveal/${activeSprint.id}`)} activeOpacity={0.7}>
+              <Image source={require('@/assets/images/whale letter.png')} style={styles.revealedWhale} resizeMode="contain" />
               <View style={styles.revealedBannerContent}>
                 <Text style={styles.revealedBannerTitle}>마니또가 밝혀졌어요</Text>
-                <Text style={styles.revealedBannerSub}>팀원들의 칭찬 내용을 확인해보세요</Text>
+                <View style={styles.revealedHintRow}>
+                  <Text style={styles.revealedHintText}>탭해서 확인하기</Text>
+                </View>
               </View>
-              <Text style={styles.revealedBannerArrow}>→</Text>
             </TouchableOpacity>
 
             <View style={styles.statsRow}>
@@ -231,11 +234,13 @@ export default function HomeScreen() {
                 onPress={() => router.push(`/reveal/${lastRevealedSprint.id}`)}
                 activeOpacity={0.7}
               >
+                <Image source={require('@/assets/images/whale letter.png')} style={styles.revealedWhale} resizeMode="contain" />
                 <View style={styles.revealedBannerContent}>
                   <Text style={styles.revealedBannerTitle}>마니또가 공개됐어요</Text>
-                  <Text style={styles.revealedBannerSub}>{lastRevealedSprint.name} 결과 보기</Text>
+                  <View style={styles.revealedHintRow}>
+                    <Text style={styles.revealedHintText}>탭해서 확인하기</Text>
+                  </View>
                 </View>
-                <Text style={styles.revealedBannerArrow}>→</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.emptyCard}>
@@ -360,14 +365,22 @@ const styles = StyleSheet.create({
   // 공개 배너
   revealedBanner: {
     flexDirection: 'row', alignItems: 'center',
-    borderRadius: 10, padding: 18,
+    height: 196, borderRadius: 12, paddingHorizontal: 20,
     borderWidth: 1, borderColor: W.border,
     backgroundColor: W.surface,
   },
-  revealedBannerContent: { flex: 1, gap: 3 },
-  revealedBannerTitle: { fontSize: 15, fontWeight: '700', color: W.text, letterSpacing: -0.3 },
-  revealedBannerSub: { fontSize: 13, color: W.muted },
-  revealedBannerArrow: { fontSize: 18, color: W.muted, marginLeft: 8 },
+  revealedWhale: { width: 170, height: 170, marginRight: 4 },
+  revealedBannerContent: { flex: 1, gap: 10 },
+  revealedBannerTitle: { fontSize: 16, fontWeight: '700', color: W.text, letterSpacing: -0.3 },
+  revealedHintRow: {
+    borderWidth: 1,
+    borderColor: 'rgba(0,113,227,0.25)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    alignSelf: 'flex-start',
+  },
+  revealedHintText: { fontSize: 12, color: W.accent, letterSpacing: 0.2 },
 
   // 빈 상태
   emptyCard: {
