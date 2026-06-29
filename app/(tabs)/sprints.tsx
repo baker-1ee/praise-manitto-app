@@ -2,14 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/avatar';
 import { AppColors } from '@/constants/theme';
 import { AlertModal } from '@/components/ui/alert-modal';
+import { DatePickerModal } from '@/components/ui/date-picker-modal';
 
 export default function SprintsScreen() {
   const { user } = useAuth();
@@ -296,35 +295,25 @@ export default function SprintsScreen() {
                   <Text style={styles.dateValue}>{startDate.toLocaleDateString('ko-KR')}</Text>
                 </TouchableOpacity>
               </View>
-              {showStartPicker && (
-                <DateTimePicker
-                  value={startDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                  onChange={(_: DateTimePickerEvent, d?: Date) => {
-                    setShowStartPicker(Platform.OS === 'ios');
-                    if (d) setStartDate(d);
-                  }}
-                />
-              )}
               <View style={styles.dateRow}>
                 <Text style={styles.dateLabel}>종료일</Text>
                 <TouchableOpacity style={styles.dateButton} onPress={() => setShowEndPicker(true)}>
                   <Text style={styles.dateValue}>{endDate.toLocaleDateString('ko-KR')}</Text>
                 </TouchableOpacity>
               </View>
-              {showEndPicker && (
-                <DateTimePicker
-                  value={endDate}
-                  mode="date"
-                  minimumDate={startDate}
-                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                  onChange={(_: DateTimePickerEvent, d?: Date) => {
-                    setShowEndPicker(Platform.OS === 'ios');
-                    if (d) setEndDate(d);
-                  }}
-                />
-              )}
+              <DatePickerModal
+                visible={showStartPicker}
+                value={startDate}
+                onConfirm={(d) => setStartDate(d)}
+                onClose={() => setShowStartPicker(false)}
+              />
+              <DatePickerModal
+                visible={showEndPicker}
+                value={endDate}
+                minimumDate={startDate}
+                onConfirm={(d) => setEndDate(d)}
+                onClose={() => setShowEndPicker(false)}
+              />
               {sprintError ? <Text style={styles.errorText}>{sprintError}</Text> : null}
               <Button title="스프린트 시작하기" onPress={handleCreateSprint} loading={creatingSprint} />
             </View>
