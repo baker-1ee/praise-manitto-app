@@ -1,17 +1,24 @@
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppColors } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
+import { AlertModal } from '@/components/ui/alert-modal';
 
 export default function OnboardingScreen() {
   const { profile, signOut } = useAuth();
+  const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
 
   const handleLogout = () => {
-    Alert.alert('로그아웃', '정말 로그아웃 하시겠어요?', [
-      { text: '취소', style: 'cancel' },
-      { text: '로그아웃', style: 'destructive', onPress: () => signOut() },
-    ]);
+    setAlert({
+      title: '로그아웃',
+      message: '정말 로그아웃 하시겠어요?',
+      buttons: [
+        { text: '취소', style: 'cancel' },
+        { text: '로그아웃', style: 'destructive', onPress: () => signOut() },
+      ],
+    });
   };
 
   return (
@@ -57,6 +64,14 @@ export default function OnboardingScreen() {
           <Text style={styles.logoutText}>다른 계정으로 로그인</Text>
         </TouchableOpacity>
       </View>
+      <AlertModal
+        visible={!!alert}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        type={alert?.type}
+        buttons={alert?.buttons}
+        onClose={() => setAlert(null)}
+      />
     </SafeAreaView>
   );
 }

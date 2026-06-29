@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +16,7 @@ import { Avatar } from '@/components/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AppColors } from '@/constants/theme';
+import { AlertModal } from '@/components/ui/alert-modal';
 
 export default function ProfileScreen() {
   const { profile, updateProfile, signOut } = useAuth();
@@ -24,6 +24,7 @@ export default function ProfileScreen() {
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
 
   // 프로필 로드 시 초기값 세팅
   useEffect(() => {
@@ -46,21 +47,21 @@ export default function ProfileScreen() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
     } catch {
-      Alert.alert('오류', '저장에 실패했습니다. 다시 시도해주세요.');
+      setAlert({ title: '오류', message: '저장에 실패했습니다. 다시 시도해주세요.', type: 'error' });
     } finally {
       setSaving(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert('로그아웃', '정말 로그아웃 하시겠어요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '로그아웃',
-        style: 'destructive',
-        onPress: () => signOut(),
-      },
-    ]);
+    setAlert({
+      title: '로그아웃',
+      message: '정말 로그아웃 하시겠어요?',
+      buttons: [
+        { text: '취소', style: 'cancel' },
+        { text: '로그아웃', style: 'destructive', onPress: () => signOut() },
+      ],
+    });
   };
 
   if (!profile) {
@@ -134,6 +135,14 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      <AlertModal
+        visible={!!alert}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        type={alert?.type}
+        buttons={alert?.buttons}
+        onClose={() => setAlert(null)}
+      />
     </SafeAreaView>
   );
 }

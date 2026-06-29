@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -36,6 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/avatar';
 import { AppColors } from '@/constants/theme';
+import { AlertModal } from '@/components/ui/alert-modal';
 
 export default function SprintsScreen() {
   const { user } = useAuth();
@@ -56,6 +56,7 @@ export default function SprintsScreen() {
   const [praiseCounts, setPraiseCounts] = useState<Record<string, number>>({});
   const [participantsModal, setParticipantsModal] = useState<{ sprint: Sprint; members: { userId: string; name: string; bio?: string }[] } | null>(null);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
 
   // 스프린트 생성 폼
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -160,33 +161,34 @@ export default function SprintsScreen() {
             return p?.name ?? uid;
           }),
         );
-        Alert.alert(
-          '공개 불가 🚫',
-          `아직 칭찬을 작성하지 않은 팀원이 있어요:\n\n${names.map((n) => `• ${n}`).join('\n')}\n\n모든 팀원이 칭찬을 작성해야 공개할 수 있습니다.`,
-          [{ text: '확인' }],
-        );
+        setAlert({
+          title: '공개 불가 🚫',
+          message: `아직 칭찬을 작성하지 않은 팀원이 있어요:\n\n${names.map((n) => `• ${n}`).join('\n')}\n\n모든 팀원이 칭찬을 작성해야 공개할 수 있습니다.`,
+          type: 'error',
+        });
         return;
       }
-      Alert.alert(
-        '마니또 공개',
-        '스프린트를 공개하면 모든 마니또 관계가 공개됩니다. 계속할까요?',
-        [
+      setAlert({
+        title: '마니또 공개',
+        message: '스프린트를 공개하면 모든 마니또 관계가 공개됩니다. 계속할까요?',
+        buttons: [
           { text: '취소', style: 'cancel' },
           {
             text: '공개하기 🎉',
+            style: 'default',
             onPress: async () => {
               try {
                 await revealSprint(activeSprint.id);
                 router.push(`/reveal/${activeSprint.id}`);
               } catch {
-                Alert.alert('오류', '공개 처리 중 오류가 발생했습니다.');
+                setAlert({ title: '오류', message: '공개 처리 중 오류가 발생했습니다.', type: 'error' });
               }
             },
           },
         ],
-      );
+      });
     } catch {
-      Alert.alert('오류', '공개 가능 여부 확인 중 오류가 발생했습니다.');
+      setAlert({ title: '오류', message: '공개 가능 여부 확인 중 오류가 발생했습니다.', type: 'error' });
     } finally {
       setRevealing(false);
     }
@@ -194,10 +196,10 @@ export default function SprintsScreen() {
 
   const handleDeleteSprint = () => {
     if (!activeSprint) return;
-    Alert.alert(
-      '스프린트를 삭제할까요?',
-      `'${activeSprint.name}'을 삭제하면 모든 칭찬 기록이 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
-      [
+    setAlert({
+      title: '스프린트를 삭제할까요?',
+      message: `'${activeSprint.name}'을 삭제하면 모든 칭찬 기록이 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
+      buttons: [
         { text: '취소', style: 'cancel' },
         {
           text: '삭제',
@@ -207,14 +209,14 @@ export default function SprintsScreen() {
             try {
               await deleteSprint(activeSprint.id);
             } catch {
-              Alert.alert('오류', '스프린트 삭제에 실패했습니다.');
+              setAlert({ title: '오류', message: '스프린트 삭제에 실패했습니다.', type: 'error' });
             } finally {
               setDeleting(false);
             }
           },
         },
       ],
-    );
+    });
   };
 
   const handleCreateSprint = async () => {
@@ -489,6 +491,14 @@ export default function SprintsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      <AlertModal
+        visible={!!alert}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        type={alert?.type}
+        buttons={alert?.buttons}
+        onClose={() => setAlert(null)}
+      />
     </SafeAreaView>
   );
 }

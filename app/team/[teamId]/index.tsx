@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -25,6 +24,7 @@ import {
 } from '@/lib/teams';
 import { Avatar } from '@/components/avatar';
 import { AppColors } from '@/constants/theme';
+import { AlertModal } from '@/components/ui/alert-modal';
 
 export default function TeamManageScreen() {
   const { teamId } = useLocalSearchParams<{ teamId: string }>();
@@ -41,6 +41,7 @@ export default function TeamManageScreen() {
   const [regenerating, setRegenerating] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!teamId) return;
@@ -67,30 +68,35 @@ export default function TeamManageScreen() {
   };
 
   const handleRegenerate = () => {
-    Alert.alert('초대 코드 재발급', '기존 코드는 더 이상 사용할 수 없습니다.', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '재발급',
-        onPress: async () => {
-          setRegenerating(true);
-          try {
-            const newCode = await regenerateInviteCode(teamId!);
-            setTeam((prev) => prev ? { ...prev, inviteCode: newCode } : prev);
-          } catch {
-            Alert.alert('오류', '코드 재발급에 실패했습니다.');
-          } finally {
-            setRegenerating(false);
-          }
+    setAlert({
+      title: '초대 코드 재발급',
+      message: '기존 코드는 더 이상 사용할 수 없습니다.',
+      buttons: [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '재발급',
+          style: 'default',
+          onPress: async () => {
+            setRegenerating(true);
+            try {
+              const newCode = await regenerateInviteCode(teamId!);
+              setTeam((prev) => prev ? { ...prev, inviteCode: newCode } : prev);
+            } catch {
+              setAlert({ title: '오류', message: '코드 재발급에 실패했습니다.', type: 'error' });
+            } finally {
+              setRegenerating(false);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    });
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      '팀을 정말 삭제할까요?',
-      `'${team?.name}' 팀을 삭제하면 모든 스프린트, 칭찬 기록, 팀원 정보가 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
-      [
+    setAlert({
+      title: '팀을 정말 삭제할까요?',
+      message: `'${team?.name}' 팀을 삭제하면 모든 스프린트, 칭찬 기록, 팀원 정보가 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
+      buttons: [
         { text: '취소', style: 'cancel' },
         {
           text: '팀 삭제',
@@ -101,35 +107,39 @@ export default function TeamManageScreen() {
               await deleteTeam(teamId!);
               router.dismissAll();
             } catch {
-              Alert.alert('오류', '팀 삭제에 실패했습니다. 다시 시도해주세요.');
+              setAlert({ title: '오류', message: '팀 삭제에 실패했습니다. 다시 시도해주세요.', type: 'error' });
             } finally {
               setDeleting(false);
             }
           },
         },
       ],
-    );
+    });
   };
 
   const handleLeave = () => {
-    Alert.alert('팀 나가기', `'${team?.name}' 팀에서 나가시겠어요?`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '나가기',
-        style: 'destructive',
-        onPress: async () => {
-          setLeaving(true);
-          try {
-            await leaveTeam(teamId!);
-            router.back();
-          } catch (e) {
-            Alert.alert('오류', e instanceof Error ? e.message : '실패했습니다.');
-          } finally {
-            setLeaving(false);
-          }
+    setAlert({
+      title: '팀 나가기',
+      message: `'${team?.name}' 팀에서 나가시겠어요?`,
+      buttons: [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '나가기',
+          style: 'destructive',
+          onPress: async () => {
+            setLeaving(true);
+            try {
+              await leaveTeam(teamId!);
+              router.back();
+            } catch (e) {
+              setAlert({ title: '오류', message: e instanceof Error ? e.message : '실패했습니다.', type: 'error' });
+            } finally {
+              setLeaving(false);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    });
   };
 
   if (loadingData) {
@@ -216,6 +226,14 @@ export default function TeamManageScreen() {
           </View>
         )}
       </ScrollView>
+      <AlertModal
+        visible={!!alert}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        type={alert?.type}
+        buttons={alert?.buttons}
+        onClose={() => setAlert(null)}
+      />
     </SafeAreaView>
   );
 }
