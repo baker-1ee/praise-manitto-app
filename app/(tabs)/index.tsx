@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -16,6 +15,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
 import { ManitoCard } from '@/components/manito-card';
 import { Avatar } from '@/components/avatar';
+import { AlertModal } from '@/components/ui/alert-modal';
 import {
   formatSprintDate,
   getLastRevealedSprint,
@@ -43,6 +43,7 @@ export default function HomeScreen() {
   const [stats, setStats] = useState({ sent: 0, received: 0 });
   const [nudging, setNudging] = useState(false);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
+  const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success' } | null>(null);
 
   useEffect(() => {
     if (!selectedTeamId) { setActiveSprint(null); return; }
@@ -86,15 +87,15 @@ export default function HomeScreen() {
     if (!activeSprint || !user || !myPair) return;
     const alreadyNudged = await hasNudgedToday(activeSprint.id, user.uid);
     if (alreadyNudged) {
-      Alert.alert('오늘 이미 조른 적 있어요', '내일 다시 시도해주세요.');
+      setAlert({ title: '오늘 이미 조른 적 있어요', message: '내일 다시 시도해주세요.' });
       return;
     }
     setNudging(true);
     try {
       await recordNudge({ sprintId: activeSprint.id, requesterId: user.uid, toUserId: myPair.targetId });
-      Alert.alert('조르기 완료', '마니또에게 칭찬을 기다리고 있다고 전달했어요.');
+      setAlert({ title: '조르기 완료!', message: '마니또에게 칭찬을 기다리고 있다고 전달했어요.', type: 'success' });
     } catch {
-      Alert.alert('오류', '조르기에 실패했습니다.');
+      setAlert({ title: '오류', message: '조르기에 실패했습니다.', type: 'error' });
     } finally {
       setNudging(false);
     }
@@ -245,6 +246,15 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* 커스텀 알럿 */}
+      <AlertModal
+        visible={!!alert}
+        title={alert?.title ?? ''}
+        message={alert?.message}
+        type={alert?.type}
+        onClose={() => setAlert(null)}
+      />
 
       {/* 팀 선택 모달 */}
       <Modal visible={showTeamPicker} transparent animationType="fade">
