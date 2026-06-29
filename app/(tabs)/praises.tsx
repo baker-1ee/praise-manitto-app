@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -110,9 +111,15 @@ export default function PraisesScreen() {
         </View>
       ) : list.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>{activeTab === 'sent' ? '✍️' : '💌'}</Text>
+          <Image
+            source={activeTab === 'received'
+              ? require('@/assets/images/whale crying.png')
+              : require('@/assets/images/whale writing.png')}
+            style={styles.emptyWhale}
+            resizeMode="contain"
+          />
           <Text style={styles.emptyText}>
-            {activeTab === 'sent' ? '아직 보낸 칭찬이 없어요' : '아직 받은 칭찬이 없어요'}
+            {activeTab === 'sent' ? '칭찬은 고래도 춤추게 한대요' : '곧 칭찬이 도착할거에요'}
           </Text>
         </View>
       ) : (
@@ -226,7 +233,8 @@ const styles = StyleSheet.create({
 
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
   emptyEmoji: { fontSize: 44 },
-  emptyText: { fontSize: 15, color: AppColors.textMuted },
+  emptyWhale: { width: 200, height: 200 },
+  emptyText: { fontSize: 15, color: AppColors.textMuted, marginTop: 4 },
 
   list: { padding: 20, gap: 12, paddingBottom: 32 },
   card: {
