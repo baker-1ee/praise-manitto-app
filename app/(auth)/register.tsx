@@ -72,7 +72,6 @@ export default function RegisterScreen() {
         >
           {/* 헤더 */}
           <View style={styles.header}>
-            <Text style={styles.emoji}>💌</Text>
             <Text style={styles.title}>회원가입</Text>
             <Text style={styles.subtitle}>칭찬 마니또에 오신 것을 환영해요!</Text>
           </View>
@@ -167,7 +166,6 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   header: { alignItems: 'center', marginBottom: 32 },
-  emoji: { fontSize: 52, marginBottom: 12 },
   title: {
     fontSize: 26,
     fontWeight: '800',

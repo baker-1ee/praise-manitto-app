@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -59,9 +60,27 @@ export default function LoginScreen() {
         >
           {/* 로고 */}
           <View style={styles.header}>
-            <Text style={styles.emoji}>💌</Text>
+            <Image source={require('@/assets/images/whale.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.appName}>칭찬 마니또</Text>
             <Text style={styles.subtitle}>팀원에게 따뜻한 칭찬을 전해보세요</Text>
+          </View>
+
+          {/* 구글 로그인 */}
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={() => { google.clearError(); google.signIn(); }}
+            disabled={google.loading}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.googleG}>G</Text>
+            <Text style={styles.googleText}>Google로 계속하기</Text>
+          </TouchableOpacity>
+
+          {/* 구분선 */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>또는</Text>
+            <View style={styles.dividerLine} />
           </View>
 
           {/* 이메일/비밀번호 폼 */}
@@ -91,24 +110,6 @@ export default function LoginScreen() {
             <Button title="로그인" onPress={handleLogin} loading={loading} />
           </View>
 
-          {/* 구분선 */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>또는</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* 구글 로그인 */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => { google.clearError(); google.signIn(); }}
-            disabled={google.loading}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.googleG}>G</Text>
-            <Text style={styles.googleText}>Google로 계속하기</Text>
-          </TouchableOpacity>
-
           {/* 회원가입 링크 */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>계정이 없으신가요?</Text>
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  emoji: { fontSize: 52, marginBottom: 12 },
+  logo: { width: 120, height: 120, marginBottom: 12 },
   appName: {
     fontSize: 26,
     fontWeight: '800',
