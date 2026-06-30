@@ -39,6 +39,8 @@ function RootNavigator() {
   const navigationState = useRootNavigationState();
 
   const loading = authLoading || (!!user && teamLoading);
+  // 인증된 유저가 아직 (auth) 화면에 있으면 전환 완료까지 오버레이 유지
+  const showOverlay = loading || (!!user && segments[0] === '(auth)');
 
   useEffect(() => {
     // 네비게이터 미준비 또는 데이터 로딩 중이면 대기
@@ -79,7 +81,7 @@ function RootNavigator() {
           }}
         />
       </Stack>
-      {loading && (
+      {showOverlay && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
           <ActivityIndicator size="large" color={AppColors.primary} />
         </View>

@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Firebase Auth 상태 구독
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) setLoading(true);
       setUser(firebaseUser);
       if (!firebaseUser) {
         setProfile(null);
