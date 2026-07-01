@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -18,43 +18,19 @@ import { useSprint } from '@/contexts/sprint-context';
 import { ManitoCard } from '@/components/manito-card';
 import { Avatar } from '@/components/avatar';
 import { AlertModal } from '@/components/ui/alert-modal';
-import {
-  formatSprintDate,
-  getLastRevealedSprint,
-  getMyPair,
-  ManitoPair,
-  Sprint,
-} from '@/lib/sprints';
-import { getUserProfile, UserProfile } from '@/lib/users';
+import { formatSprintDate } from '@/lib/sprints';
 import { hasNudgedToday, recordNudge } from '@/lib/praises';
 
 export default function HomeScreen() {
   const { profile, user } = useAuth();
   const { myTeams, selectedTeam, selectedTeamId, setSelectedTeam } = useTeam();
-  const { activeSprint, sentPraises, receivedPraises } = useSprint();
+  const { activeSprint, myPair, targetProfile, lastRevealedSprint, sentPraises, receivedPraises } = useSprint();
 
-  const [myPair, setMyPair] = useState<ManitoPair | null>(null);
-  const [targetProfile, setTargetProfile] = useState<UserProfile | null>(null);
-  const [lastRevealedSprint, setLastRevealedSprint] = useState<Sprint | null>(null);
   const [nudging, setNudging] = useState(false);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success' } | null>(null);
 
   const stats = { sent: sentPraises.length, received: receivedPraises.length };
-
-  useEffect(() => {
-    if (!user || activeSprint === undefined) return;
-    if (!activeSprint) {
-      if (selectedTeamId) getLastRevealedSprint(selectedTeamId).then(setLastRevealedSprint);
-      return;
-    }
-    getMyPair(activeSprint.id, user.uid).then(setMyPair);
-  }, [activeSprint?.id, user?.uid]);
-
-  useEffect(() => {
-    if (!myPair?.targetId) { setTargetProfile(null); return; }
-    getUserProfile(myPair.targetId).then(setTargetProfile);
-  }, [myPair?.targetId]);
 
   const handleNudge = async () => {
     if (!activeSprint || !user || !myPair) return;
