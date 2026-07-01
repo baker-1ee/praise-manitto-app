@@ -4,12 +4,14 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SprintProvider } from '@/contexts/sprint-context';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
   return (
+    <SprintProvider>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: theme.tint,
@@ -69,5 +71,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </SprintProvider>
   );
 }

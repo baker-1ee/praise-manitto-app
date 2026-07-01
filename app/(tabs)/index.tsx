@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
+import { useSprint } from '@/contexts/sprint-context';
 import { ManitoCard } from '@/components/manito-card';
 import { Avatar } from '@/components/avatar';
 import { AlertModal } from '@/components/ui/alert-modal';
@@ -23,41 +24,23 @@ import {
   getMyPair,
   ManitoPair,
   Sprint,
-  subscribeToActiveSprint,
 } from '@/lib/sprints';
 import { getUserProfile, UserProfile } from '@/lib/users';
-import {
-  hasNudgedToday,
-  recordNudge,
-  subscribeToReceivedPraises,
-  subscribeToSentPraises,
-} from '@/lib/praises';
+import { hasNudgedToday, recordNudge } from '@/lib/praises';
 
 export default function HomeScreen() {
   const { profile, user } = useAuth();
   const { myTeams, selectedTeam, selectedTeamId, setSelectedTeam } = useTeam();
+  const { activeSprint, sentPraises, receivedPraises } = useSprint();
 
-  const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
   const [myPair, setMyPair] = useState<ManitoPair | null>(null);
   const [targetProfile, setTargetProfile] = useState<UserProfile | null>(null);
   const [lastRevealedSprint, setLastRevealedSprint] = useState<Sprint | null>(null);
-  const [stats, setStats] = useState({ sent: 0, received: 0 });
   const [nudging, setNudging] = useState(false);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success' } | null>(null);
 
-  useEffect(() => {
-    if (!selectedTeamId) { setActiveSprint(null); return; }
-    setActiveSprint(undefined);
-    setMyPair(null);
-    setTargetProfile(null);
-    setLastRevealedSprint(null);
-    setStats({ sent: 0, received: 0 });
-    const unsub = subscribeToActiveSprint(selectedTeamId, (sprint) => {
-      setActiveSprint(sprint);
-    });
-    return unsub;
-  }, [selectedTeamId]);
+  const stats = { sent: sentPraises.length, received: receivedPraises.length };
 
   useEffect(() => {
     if (!user || activeSprint === undefined) return;
@@ -66,17 +49,6 @@ export default function HomeScreen() {
       return;
     }
     getMyPair(activeSprint.id, user.uid).then(setMyPair);
-  }, [activeSprint?.id, user?.uid]);
-
-  useEffect(() => {
-    if (!user || !activeSprint) { setStats({ sent: 0, received: 0 }); return; }
-    const unsubSent = subscribeToSentPraises(activeSprint.id, user.uid, (p) =>
-      setStats((prev) => ({ ...prev, sent: p.length })),
-    );
-    const unsubReceived = subscribeToReceivedPraises(activeSprint.id, user.uid, (p) =>
-      setStats((prev) => ({ ...prev, received: p.length })),
-    );
-    return () => { unsubSent(); unsubReceived(); };
   }, [activeSprint?.id, user?.uid]);
 
   useEffect(() => {

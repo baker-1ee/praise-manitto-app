@@ -11,14 +11,9 @@ TouchableOpacity,
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
-import { subscribeToActiveSprint, Sprint } from '@/lib/sprints';
-import {
-  Praise,
-  subscribeToReceivedPraises,
-  subscribeToSentPraises,
-} from '@/lib/praises';
+import { useSprint } from '@/contexts/sprint-context';
+import { Praise } from '@/lib/praises';
 import { AppColors } from '@/constants/theme';
 import { PraiseCardSkeleton } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/avatar';
@@ -26,48 +21,20 @@ import { Avatar } from '@/components/avatar';
 type Tab = 'sent' | 'received';
 
 export default function PraisesScreen() {
-  const { user } = useAuth();
   const { myTeams, selectedTeam, selectedTeamId, setSelectedTeam } = useTeam();
+  const { activeSprint, sentPraises, receivedPraises } = useSprint();
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
 
   const [activeTab, setActiveTab] = useState<Tab>('sent');
-  const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
-  const [sentPraises, setSentPraises] = useState<Praise[]>([]);
-  const [receivedPraises, setReceivedPraises] = useState<Praise[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
+
+  const loading = activeSprint === undefined;
 
   // tabParam 변경 시 탭 전환
   useEffect(() => {
     if (tabParam === 'received') setActiveTab('received');
     else if (tabParam === 'sent') setActiveTab('sent');
   }, [tabParam]);
-
-  // 팀 변경 시 활성 스프린트 구독
-  useEffect(() => {
-    if (!selectedTeamId) { setActiveSprint(null); setLoading(false); return; }
-    setLoading(true);
-    setActiveSprint(undefined);
-    const unsub = subscribeToActiveSprint(selectedTeamId, (s) => {
-      setActiveSprint(s);
-      setLoading(false);
-    });
-    return unsub;
-  }, [selectedTeamId]);
-
-  // 보낸 칭찬 구독 (활성 스프린트 기준)
-  useEffect(() => {
-    if (!user || !activeSprint) { setSentPraises([]); return; }
-    const unsub = subscribeToSentPraises(activeSprint.id, user.uid, setSentPraises);
-    return unsub;
-  }, [activeSprint?.id, user?.uid]);
-
-  // 받은 칭찬 구독 (활성 스프린트 기준)
-  useEffect(() => {
-    if (!user || !activeSprint) { setReceivedPraises([]); return; }
-    const unsub = subscribeToReceivedPraises(activeSprint.id, user.uid, setReceivedPraises);
-    return unsub;
-  }, [activeSprint?.id, user?.uid]);
 
   const list = activeTab === 'sent' ? sentPraises : receivedPraises;
   const isRevealed = activeSprint?.status === 'REVEALED' || activeSprint?.status === 'CLOSED';
