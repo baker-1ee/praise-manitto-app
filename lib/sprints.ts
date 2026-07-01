@@ -225,22 +225,30 @@ export interface RevealData {
   totalPraises: number;
 }
 
+// 공개된 스프린트 결과는 불변이므로 앱 세션 동안 메모리에 캐싱
+const revealCache = new Map<string, RevealData>();
+
 export async function getRevealData(sprintId: string): Promise<RevealData | null> {
-  // 스프린트 조회
-  const sprintSnap = await getDocs(
-    query(collection(db, 'sprints'), where('__name__', '==', sprintId)),
-  );
+  // 캐시 히트 시 즉시 반환
+  const cached = revealCache.get(sprintId);
+  if (cached) return cached;
+
+  // 스프린트 조회 (getDoc 단일 호출로 통합)
   const sprintDoc = await getDoc(doc(db, 'sprints', sprintId));
   if (!sprintDoc.exists()) return null;
   const sprint = { id: sprintDoc.id, ...(sprintDoc.data() as Omit<Sprint, 'id'>) };
 
   if (sprint.status !== 'REVEALED' && sprint.status !== 'CLOSED') return null;
 
-  // pairs 조회
-  const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
+  // pairs + 칭찬 병렬 조회
+  const [pairsSnap, praisesSnap] = await Promise.all([
+    getDocs(collection(db, 'sprints', sprintId, 'pairs')),
+    getDocs(query(collection(db, 'praises'), where('sprintId', '==', sprintId))),
+  ]);
+
   const rawPairs = pairsSnap.docs.map((d) => d.data() as { manitoId: string; targetId: string });
 
-  // 모든 userId 수집 → 일괄 유저 조회
+  // 중복 제거된 uid 목록으로 유저 프로필 병렬 조회
   const allUids = [...new Set(rawPairs.flatMap((p) => [p.manitoId, p.targetId]))];
   const { getUserProfile } = await import('@/lib/users');
   const profileMap = new Map<string, string>();
@@ -251,11 +259,6 @@ export async function getRevealData(sprintId: string): Promise<RevealData | null
     }),
   );
 
-  // 칭찬 조회
-  // 단일 필드 쿼리 + 클라이언트 정렬
-  const praisesSnap = await getDocs(
-    query(collection(db, 'praises'), where('sprintId', '==', sprintId)),
-  );
   const allPraises = praisesSnap.docs
     .map((d) => ({
       fromUserId: d.data().fromUserId as string,
@@ -263,7 +266,7 @@ export async function getRevealData(sprintId: string): Promise<RevealData | null
       categories: d.data().categories as string[],
       createdAt: d.data().createdAt as Timestamp | null,
     }))
-    .sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0)); // asc
+    .sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
 
   const pairs: RevealPair[] = rawPairs.map((p) => ({
     manitoId: p.manitoId,
@@ -275,7 +278,12 @@ export async function getRevealData(sprintId: string): Promise<RevealData | null
       .map(({ content, categories, createdAt }) => ({ content, categories, createdAt })),
   }));
 
-  return { sprint, pairs, totalPraises: allPraises.length };
+  const result: RevealData = { sprint, pairs, totalPraises: allPraises.length };
+
+  // 공개/종료 스프린트는 불변 → 캐싱
+  revealCache.set(sprintId, result);
+
+  return result;
 }
 
 /** 내 마니또 배정 조회 (내가 칭찬해야 할 대상) */
