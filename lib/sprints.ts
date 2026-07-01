@@ -248,16 +248,19 @@ export async function getRevealData(sprintId: string): Promise<RevealData | null
 
   const rawPairs = pairsSnap.docs.map((d) => d.data() as { manitoId: string; targetId: string });
 
-  // 중복 제거된 uid 목록으로 유저 프로필 병렬 조회
+  // 중복 제거된 uid 목록을 in 쿼리로 한 번에 조회 (최대 30개씩 청크)
   const allUids = [...new Set(rawPairs.flatMap((p) => [p.manitoId, p.targetId]))];
-  const { getUserProfile } = await import('@/lib/users');
   const profileMap = new Map<string, string>();
-  await Promise.all(
-    allUids.map(async (uid) => {
-      const p = await getUserProfile(uid);
-      profileMap.set(uid, p?.name ?? '알 수 없음');
-    }),
-  );
+  const chunkSize = 30;
+  for (let i = 0; i < allUids.length; i += chunkSize) {
+    const chunk = allUids.slice(i, i + chunkSize);
+    const usersSnap = await getDocs(
+      query(collection(db, 'users'), where('__name__', 'in', chunk)),
+    );
+    usersSnap.docs.forEach((d) => {
+      profileMap.set(d.id, (d.data().name as string) ?? '알 수 없음');
+    });
+  }
 
   const allPraises = praisesSnap.docs
     .map((d) => ({
