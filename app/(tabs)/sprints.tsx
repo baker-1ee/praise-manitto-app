@@ -14,19 +14,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
+import { useSprint } from '@/contexts/sprint-context';
 import { getTeamMembersWithProfiles } from '@/lib/teams';
 import {
   checkRevealEligibility,
   createSprint,
   deleteSprint,
   formatSprintDate,
-  getPastSprintsPaged,
   getSprintParticipants,
   revealSprint,
   Sprint,
-  subscribeToActiveSprint,
 } from '@/lib/sprints';
-import { QueryDocumentSnapshot } from 'firebase/firestore';
 import { getSprintPraiseCount } from '@/lib/praises';
 import { getUserProfile } from '@/lib/users';
 import { Input } from '@/components/ui/input';
@@ -39,16 +37,15 @@ import { DatePickerModal } from '@/components/ui/date-picker-modal';
 export default function SprintsScreen() {
   const { user } = useAuth();
   const { myTeams, selectedTeam, selectedTeamId, setSelectedTeam } = useTeam();
+  const { activeSprint: contextSprint, pastSprints, loadingPast, hasMore, loadMore } = useSprint();
 
   const myMembership = myTeams.find((t) => t.id === selectedTeamId);
   const isLeader = myMembership?.role === 'LEADER';
 
-  const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
-  const [pastSprints, setPastSprints] = useState<Sprint[]>([]);
-  const [loadingActive, setLoadingActive] = useState(true);
-  const [loadingPast, setLoadingPast] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  // 스프린트 탭에서는 ACTIVE 스프린트만 "진행 중"으로 표시
+  const activeSprint = contextSprint?.status === 'ACTIVE' ? contextSprint : null;
+  const loadingActive = contextSprint === undefined;
+
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -70,55 +67,6 @@ export default function SprintsScreen() {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [creatingSprint, setCreatingSprint] = useState(false);
   const [sprintError, setSprintError] = useState('');
-
-  // 활성 스프린트 실시간 구독 — ACTIVE만 "진행 중"으로 취급
-  useEffect(() => {
-    if (!selectedTeamId) { setActiveSprint(null); setLoadingActive(false); return; }
-    setLoadingActive(true);
-    setActiveSprint(undefined);
-    return subscribeToActiveSprint(selectedTeamId, (s) => {
-      const active = s?.status === 'ACTIVE' ? s : null;
-      setActiveSprint(active);
-      setLoadingActive(false);
-    });
-  }, [selectedTeamId]);
-
-  // 활성 스프린트가 사라지면(공개/삭제) 지난 목록 첫 페이지 리셋
-  useEffect(() => {
-    if (activeSprint !== null || !selectedTeamId) return;
-    getPastSprintsPaged(selectedTeamId).then(({ sprints, lastDoc: ld, hasMore: hm }) => {
-      setPastSprints(sprints);
-      setLastDoc(ld);
-      setHasMore(hm);
-    });
-  }, [activeSprint]);
-
-  // 지난 스프린트 첫 페이지 로드
-  useEffect(() => {
-    if (!selectedTeamId) { setPastSprints([]); setHasMore(false); setLastDoc(null); return; }
-    setLoadingPast(true);
-    setPastSprints([]);
-    setLastDoc(null);
-    getPastSprintsPaged(selectedTeamId).then(({ sprints, lastDoc: ld, hasMore: hm }) => {
-      setPastSprints(sprints);
-      setLastDoc(ld);
-      setHasMore(hm);
-      setLoadingPast(false);
-    });
-  }, [selectedTeamId]);
-
-  const loadMore = async () => {
-    if (!selectedTeamId || !hasMore || loadingPast || !lastDoc) return;
-    setLoadingPast(true);
-    const { sprints, lastDoc: ld, hasMore: hm } = await getPastSprintsPaged(selectedTeamId, lastDoc);
-    setPastSprints((prev) => {
-      const ids = new Set(prev.map((s) => s.id));
-      return [...prev, ...sprints.filter((s) => !ids.has(s.id))];
-    });
-    setLastDoc(ld);
-    setHasMore(hm);
-    setLoadingPast(false);
-  };
 
 
   // 새로 로드된 지난 스프린트 칭찬 수 조회
