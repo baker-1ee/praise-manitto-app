@@ -1,9 +1,9 @@
+import { Text } from '@/components/ui/text';
 import React from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+TouchableOpacity,
   TouchableOpacityProps,
 } from 'react-native';
 import { AppColors } from '@/constants/theme';

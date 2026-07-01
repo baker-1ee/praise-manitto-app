@@ -1,11 +1,11 @@
+import { Text } from '@/components/ui/text';
 import React, { useEffect, useState } from 'react';
 import {
   Image,
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+TouchableOpacity,
   View,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';

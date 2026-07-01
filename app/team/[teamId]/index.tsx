@@ -1,10 +1,10 @@
+import { Text } from '@/components/ui/text';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+TouchableOpacity,
   View,
 } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';

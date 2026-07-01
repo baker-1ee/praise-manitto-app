@@ -1,9 +1,9 @@
+import { Text } from '@/components/ui/text';
 import React, { forwardRef, useState } from 'react';
 import {
   Platform,
   StyleSheet,
-  Text,
-  TextInput,
+TextInput,
   TextInputProps,
   TouchableOpacity,
   View,

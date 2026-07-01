@@ -1,5 +1,6 @@
+import { Text } from '@/components/ui/text';
 import React from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { getAvatarColor, getInitials } from '@/lib/users';
 
 interface AvatarProps {

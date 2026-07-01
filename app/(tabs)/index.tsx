@@ -1,3 +1,4 @@
+import { Text } from '@/components/ui/text';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -5,8 +6,7 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+TouchableOpacity,
   View,
 } from 'react-native';
 import { router } from 'expo-router';

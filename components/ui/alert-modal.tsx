@@ -1,9 +1,9 @@
+import { Text } from '@/components/ui/text';
 import React from 'react';
 import {
   Modal,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+TouchableOpacity,
   View,
 } from 'react-native';
 import { AppColors } from '@/constants/theme';

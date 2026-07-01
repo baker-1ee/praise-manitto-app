@@ -1,3 +1,4 @@
+import { Text } from '@/components/ui/text';
 import React, { useRef, useState } from 'react';
 import {
   Image,
@@ -5,8 +6,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
+TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -140,10 +140,9 @@ const styles = StyleSheet.create({
   },
   logo: { width: 120, height: 120, marginBottom: 12 },
   appName: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 36,
+    fontFamily: 'NanumPenScript_400Regular',
     color: AppColors.primary,
-    letterSpacing: -0.5,
     marginBottom: 6,
   },
   subtitle: { fontSize: 14, color: AppColors.textMuted },

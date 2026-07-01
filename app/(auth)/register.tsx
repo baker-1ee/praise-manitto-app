@@ -1,11 +1,11 @@
+import { Text } from '@/components/ui/text';
 import React, { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
+TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';

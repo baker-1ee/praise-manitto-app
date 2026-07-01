@@ -1,11 +1,11 @@
+import { Text } from '@/components/ui/text';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+TouchableOpacity,
   View,
 } from 'react-native';
 import { router } from 'expo-router';

@@ -1,4 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { NanumPenScript_400Regular } from '@expo-google-fonts/nanum-pen-script';
+import { GowunDodum_400Regular } from '@expo-google-fonts/gowun-dodum';
 import { Stack, useGlobalSearchParams, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -16,6 +19,9 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({ NanumPenScript_400Regular, GowunDodum_400Regular });
+
+  if (!fontsLoaded) return null;
 
   return (
     <AuthProvider>
