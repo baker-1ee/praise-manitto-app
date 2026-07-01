@@ -93,40 +93,76 @@ export function subscribeToActiveSprint(
   teamId: string,
   callback: (sprint: Sprint | null) => void,
 ): () => void {
-  const q = query(collection(db, 'sprints'), where('teamId', '==', teamId));
-  return onSnapshot(q, (snap) => {
-    const sprints = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }));
-    const active = sprints.find((s) => s.status === 'ACTIVE')
-      ?? sprints
-          .filter((s) => s.status === 'REVEALED')
-          .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))[0]
-      ?? null;
-    callback(active);
+  // ACTIVE 스프린트 우선 구독
+  const activeQ = query(
+    collection(db, 'sprints'),
+    where('teamId', '==', teamId),
+    where('status', '==', 'ACTIVE'),
+    limit(1),
+  );
+  let unsubActive: (() => void) | null = null;
+  let unsubFallback: (() => void) | null = null;
+
+  unsubActive = onSnapshot(activeQ, (snap) => {
+    if (!snap.empty) {
+      // ACTIVE 스프린트 있으면 fallback 해제
+      unsubFallback?.();
+      unsubFallback = null;
+      const d = snap.docs[0];
+      callback({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) });
+    } else {
+      // ACTIVE 없으면 가장 최근 REVEALED 1개 구독
+      if (!unsubFallback) {
+        const revealedQ = query(
+          collection(db, 'sprints'),
+          where('teamId', '==', teamId),
+          where('status', '==', 'REVEALED'),
+          orderBy('createdAt', 'desc'),
+          limit(1),
+        );
+        unsubFallback = onSnapshot(revealedQ, (rSnap) => {
+          if (rSnap.empty) {
+            callback(null);
+          } else {
+            const d = rSnap.docs[0];
+            callback({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) });
+          }
+        });
+      }
+    }
   });
+
+  return () => {
+    unsubActive?.();
+    unsubFallback?.();
+  };
 }
 
-/** 팀 스프린트 목록 실시간 구독 (최신순) */
+/** 팀 스프린트 목록 실시간 구독 (최신순) — 서버 정렬 */
 export function subscribeToTeamSprints(
   teamId: string,
   callback: (sprints: Sprint[]) => void,
 ): () => void {
-  const q = query(collection(db, 'sprints'), where('teamId', '==', teamId));
+  const q = query(
+    collection(db, 'sprints'),
+    where('teamId', '==', teamId),
+    orderBy('createdAt', 'desc'),
+  );
   return onSnapshot(q, (snap) => {
-    const sprints = snap.docs
-      .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
-      .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
-    callback(sprints);
+    callback(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) })));
   });
 }
 
-/** 팀 스프린트 목록 (최신순) — 클라이언트 정렬 */
+/** 팀 스프린트 목록 (최신순) — 서버 정렬 */
 export async function getTeamSprints(teamId: string): Promise<Sprint[]> {
   const snap = await getDocs(
-    query(collection(db, 'sprints'), where('teamId', '==', teamId)),
+    query(
+      collection(db, 'sprints'),
+      where('teamId', '==', teamId),
+      orderBy('createdAt', 'desc'),
+    ),
   );
-  return snap.docs
-    .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
-    .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }));
 }
 
 const PAST_PAGE_SIZE = 5;
@@ -152,16 +188,20 @@ export async function getPastSprintsPaged(
   return { sprints: past.slice(0, PAST_PAGE_SIZE), lastDoc, hasMore };
 }
 
-/** 직전 공개 스프린트 조회 — 클라이언트 필터/정렬 */
+/** 직전 공개 스프린트 조회 — 서버 필터/정렬, limit 1 */
 export async function getLastRevealedSprint(teamId: string): Promise<Sprint | null> {
   const snap = await getDocs(
-    query(collection(db, 'sprints'), where('teamId', '==', teamId)),
+    query(
+      collection(db, 'sprints'),
+      where('teamId', '==', teamId),
+      where('status', 'in', ['REVEALED', 'CLOSED']),
+      orderBy('createdAt', 'desc'),
+      limit(1),
+    ),
   );
-  const revealed = snap.docs
-    .map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }))
-    .filter((s) => s.status === 'REVEALED' || s.status === 'CLOSED')
-    .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
-  return revealed[0] ?? null;
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...(d.data() as Omit<Sprint, 'id'>) };
 }
 
 // ─── 공개 (Reveal) ────────────────────────────────────────────────────────────

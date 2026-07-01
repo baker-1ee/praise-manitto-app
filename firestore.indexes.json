@@ -11,6 +11,15 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "sprints",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teamId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "praises",
       "queryScope": "COLLECTION",
       "fields": [
