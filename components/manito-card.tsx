@@ -45,7 +45,7 @@ export function ManitoCard({ target }: ManitoCardProps) {
       {/* 앞면 */}
       <Animated.View style={[styles.card, styles.front, frontStyle]}>
         <Image
-          source={require('@/assets/images/whale question.png')}
+          source={require('@/assets/images/whale-question.png')}
           style={styles.frontWhale}
           resizeMode="contain"
         />

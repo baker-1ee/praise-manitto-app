@@ -113,8 +113,8 @@ export default function PraisesScreen() {
         <View style={styles.center}>
           <Image
             source={activeTab === 'received'
-              ? require('@/assets/images/whale crying.png')
-              : require('@/assets/images/whale writing.png')}
+              ? require('@/assets/images/whale-crying.png')
+              : require('@/assets/images/whale-writing.png')}
             style={styles.emptyWhale}
             resizeMode="contain"
           />

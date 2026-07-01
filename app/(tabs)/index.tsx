@@ -197,7 +197,7 @@ export default function HomeScreen() {
             </View>
 
             <TouchableOpacity style={styles.revealedBanner} onPress={() => router.push(`/reveal/${activeSprint.id}`)} activeOpacity={0.7}>
-              <Image source={require('@/assets/images/whale letter.png')} style={styles.revealedWhale} resizeMode="contain" />
+              <Image source={require('@/assets/images/whale-letter.png')} style={styles.revealedWhale} resizeMode="contain" />
               <View style={styles.revealedBannerContent}>
                 <Text style={styles.revealedBannerTitle}>마니또가 밝혀졌어요</Text>
                 <View style={styles.revealedHintRow}>
@@ -234,7 +234,7 @@ export default function HomeScreen() {
                 onPress={() => router.push(`/reveal/${lastRevealedSprint.id}`)}
                 activeOpacity={0.7}
               >
-                <Image source={require('@/assets/images/whale letter.png')} style={styles.revealedWhale} resizeMode="contain" />
+                <Image source={require('@/assets/images/whale-letter.png')} style={styles.revealedWhale} resizeMode="contain" />
                 <View style={styles.revealedBannerContent}>
                   <Text style={styles.revealedBannerTitle}>마니또가 공개됐어요</Text>
                   <View style={styles.revealedHintRow}>
