@@ -349,5 +349,5 @@ export async function getSprintParticipants(
       return { userId, name, bio };
     }),
   );
-  return profiles.filter((p): p is { userId: string; name: string; bio?: string } => p !== null);
+  return profiles.filter((p): p is NonNullable<typeof p> => p !== null);
 }

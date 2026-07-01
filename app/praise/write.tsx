@@ -14,8 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useTeam } from '@/contexts/team-context';
-import { getMyPair } from '@/lib/sprints';
-import { subscribeToActiveSprint } from '@/lib/sprints';
+import { getMyPair, subscribeToActiveSprint } from '@/lib/sprints';
 import {
   PRAISE_CATEGORIES,
   PraiseCategory,
