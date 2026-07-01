@@ -93,49 +93,39 @@ export function subscribeToActiveSprint(
   teamId: string,
   callback: (sprint: Sprint | null) => void,
 ): () => void {
-  // ACTIVE 스프린트 우선 구독
   const activeQ = query(
     collection(db, 'sprints'),
     where('teamId', '==', teamId),
     where('status', '==', 'ACTIVE'),
     limit(1),
   );
-  let unsubActive: (() => void) | null = null;
-  let unsubFallback: (() => void) | null = null;
 
-  unsubActive = onSnapshot(activeQ, (snap) => {
+  const unsub = onSnapshot(activeQ, (snap) => {
     if (!snap.empty) {
-      // ACTIVE 스프린트 있으면 fallback 해제
-      unsubFallback?.();
-      unsubFallback = null;
       const d = snap.docs[0];
       callback({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) });
     } else {
-      // ACTIVE 없으면 가장 최근 REVEALED 1개 구독
-      if (!unsubFallback) {
-        const revealedQ = query(
+      // ACTIVE 없으면 가장 최근 REVEALED 단건 조회 (변화 없으므로 구독 불필요)
+      getDocs(
+        query(
           collection(db, 'sprints'),
           where('teamId', '==', teamId),
           where('status', '==', 'REVEALED'),
           orderBy('createdAt', 'desc'),
           limit(1),
-        );
-        unsubFallback = onSnapshot(revealedQ, (rSnap) => {
-          if (rSnap.empty) {
-            callback(null);
-          } else {
-            const d = rSnap.docs[0];
-            callback({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) });
-          }
-        });
-      }
+        ),
+      ).then((rSnap) => {
+        if (rSnap.empty) {
+          callback(null);
+        } else {
+          const d = rSnap.docs[0];
+          callback({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) });
+        }
+      });
     }
   });
 
-  return () => {
-    unsubActive?.();
-    unsubFallback?.();
-  };
+  return unsub;
 }
 
 /** 팀 스프린트 목록 실시간 구독 (최신순) — 서버 정렬 */
