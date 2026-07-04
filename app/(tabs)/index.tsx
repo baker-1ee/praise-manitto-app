@@ -192,6 +192,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ) : (
               <View style={styles.emptyCard}>
+                <Image source={require('@/assets/images/whale-rest.png')} style={styles.emptyWhale} resizeMode="contain" />
                 <Text style={styles.emptyTitle}>진행 중인 스프린트가 없어요</Text>
                 <Text style={styles.emptySub}>팀장님이 새 스프린트를 시작하면 알려드릴게요</Text>
               </View>
@@ -332,12 +333,13 @@ const styles = StyleSheet.create({
 
   // 빈 상태
   emptyCard: {
-    borderRadius: 10, paddingVertical: 48, paddingHorizontal: 24,
-    alignItems: 'center', gap: 6,
+    alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderRadius: 12, paddingVertical: 32,
     borderWidth: 1, borderColor: W.border,
     backgroundColor: W.surface,
   },
-  emptyTitle: { fontSize: 15, fontWeight: '600', color: W.text },
+  emptyWhale: { width: 140, height: 140 },
+  emptyTitle: { fontSize: 15, fontWeight: '700', color: W.text, letterSpacing: -0.3 },
   emptySub: { fontSize: 13, color: W.muted, textAlign: 'center', lineHeight: 19 },
 
   // 팀 선택 모달
