@@ -4,7 +4,7 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
-View,
+  View,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';

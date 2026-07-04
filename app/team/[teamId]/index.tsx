@@ -95,7 +95,7 @@ export default function TeamManageScreen() {
   const handleDelete = () => {
     setAlert({
       title: '팀을 정말 삭제할까요?',
-      message: `'${team?.name}' 팀을 삭제하면 모든 스프린트, 칭찬 기록, 팀원 정보가 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
+      message: `'${team?.name}' 팀을 삭제하면 칭찬 기록도 사라져요. 이 작업은 되돌릴 수 없어요.`,
       buttons: [
         { text: '취소', style: 'cancel' },
         {

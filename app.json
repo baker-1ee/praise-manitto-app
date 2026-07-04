@@ -41,12 +41,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/whale-question.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#7c3aed",
+          "backgroundColor": "#ffffff",
           "dark": {
-            "backgroundColor": "#7c3aed"
+            "backgroundColor": "#ffffff"
           }
         }
       ],

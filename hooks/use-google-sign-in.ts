@@ -17,11 +17,10 @@ export function useGoogleSignIn() {
     try {
       await GoogleSignin.hasPlayServices();
       // 이미 로그인된 계정이 있으면 UI 없이 처리 (번쩍임 방지)
-      let result = await GoogleSignin.signInSilently();
-      if (result.type === 'noSavedCredentialFound') {
-        result = await GoogleSignin.signIn();
-      }
-      const idToken = result.data?.idToken;
+      const silentResult = await GoogleSignin.signInSilently();
+      const idToken = silentResult.type === 'noSavedCredentialFound'
+        ? (await GoogleSignin.signIn()).data?.idToken
+        : silentResult.data?.idToken;
       if (!idToken) throw new Error('Google 로그인 실패: 토큰을 받지 못했습니다.');
       await signInWithGoogle({ idToken });
     } catch (e: any) {
