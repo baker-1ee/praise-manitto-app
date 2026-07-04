@@ -356,8 +356,9 @@ export default function SprintsScreen() {
       )}
 
       {/* 참여 멤버 모달 */}
-      <Modal visible={!!participantsModal} transparent animationType="fade">
-        <TouchableOpacity style={styles.overlay} onPress={() => setParticipantsModal(null)}>
+      <Modal visible={!!participantsModal} transparent animationType="slide">
+        <View style={styles.overlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setParticipantsModal(null)} />
           <View style={styles.pickerSheet}>
             <Text style={styles.pickerTitle}>{participantsModal?.sprint.name}</Text>
             <View style={styles.participantsSubtitleRow}>
@@ -369,18 +370,20 @@ export default function SprintsScreen() {
             {loadingParticipants ? (
               <ActivityIndicator color={AppColors.primary} style={{ marginVertical: 20 }} />
             ) : (
-              participantsModal?.members.map((m) => (
-                <View key={m.userId} style={styles.participantRow}>
-                  <Avatar name={m.name} size={36} />
-                  <View>
-                    <Text style={styles.participantName}>{m.name}</Text>
-                    {m.bio ? <Text style={styles.participantBio}>{m.bio}</Text> : null}
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {participantsModal?.members.map((m) => (
+                  <View key={m.userId} style={styles.participantRow}>
+                    <Avatar name={m.name} size={36} />
+                    <View>
+                      <Text style={styles.participantName}>{m.name}</Text>
+                      {m.bio ? <Text style={styles.participantBio}>{m.bio}</Text> : null}
+                    </View>
                   </View>
-                </View>
-              ))
+                ))}
+              </ScrollView>
             )}
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* 팀 선택 모달 */}
@@ -532,6 +535,7 @@ const styles = StyleSheet.create({
   pickerSheet: {
     backgroundColor: AppColors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingTop: 20, paddingBottom: 36, paddingHorizontal: 20, gap: 4,
+    maxHeight: '75%',
   },
   pickerTitle: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary, marginBottom: 2 },
   participantsSubtitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
