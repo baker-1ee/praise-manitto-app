@@ -188,7 +188,7 @@ export default function PraiseWriteScreen() {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <Button
-          title="칭찬 보내기 💌"
+          title="칭찬 보내기"
           onPress={handleSubmit}
           loading={submitting}
           disabled={content.trim().length < MIN_LEN || content.length > MAX_LEN}

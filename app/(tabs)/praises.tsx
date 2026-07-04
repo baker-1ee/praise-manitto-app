@@ -73,8 +73,7 @@ export default function PraisesScreen() {
         </ScrollView>
       ) : !activeSprint ? (
         <View style={styles.center}>
-          <Text style={styles.emptyEmoji}>😴</Text>
-          <Text style={styles.emptyText}>스프린트가 없어요</Text>
+          <Text style={styles.emptyText}>진행중인 스프린트가 없어요</Text>
         </View>
       ) : list.length === 0 ? (
         <View style={styles.center}>
