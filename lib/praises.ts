@@ -82,25 +82,6 @@ export function subscribeToReceivedPraises(
   });
 }
 
-/** 칭찬 통계 — 서버에서 각각 필터링해서 count만 조회 */
-export async function getPraiseStats(
-  sprintId: string,
-  userId: string,
-): Promise<{ sent: number; received: number }> {
-  const [sentSnap, receivedSnap] = await Promise.all([
-    getDocs(query(
-      collection(db, 'praises'),
-      where('sprintId', '==', sprintId),
-      where('fromUserId', '==', userId),
-    )),
-    getDocs(query(
-      collection(db, 'praises'),
-      where('sprintId', '==', sprintId),
-      where('toUserId', '==', userId),
-    )),
-  ]);
-  return { sent: sentSnap.size, received: receivedSnap.size };
-}
 
 /** 스프린트 칭찬 총 개수 — 문서 다운로드 없이 서버 집계 */
 export async function getSprintPraiseCount(sprintId: string): Promise<number> {

@@ -128,32 +128,6 @@ export function subscribeToActiveSprint(
   return unsub;
 }
 
-/** 팀 스프린트 목록 실시간 구독 (최신순) — 서버 정렬 */
-export function subscribeToTeamSprints(
-  teamId: string,
-  callback: (sprints: Sprint[]) => void,
-): () => void {
-  const q = query(
-    collection(db, 'sprints'),
-    where('teamId', '==', teamId),
-    orderBy('createdAt', 'desc'),
-  );
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) })));
-  });
-}
-
-/** 팀 스프린트 목록 (최신순) — 서버 정렬 */
-export async function getTeamSprints(teamId: string): Promise<Sprint[]> {
-  const snap = await getDocs(
-    query(
-      collection(db, 'sprints'),
-      where('teamId', '==', teamId),
-      orderBy('createdAt', 'desc'),
-    ),
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sprint, 'id'>) }));
-}
 
 const PAST_PAGE_SIZE = 5;
 

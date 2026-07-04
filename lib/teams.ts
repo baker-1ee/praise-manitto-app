@@ -132,31 +132,6 @@ export function subscribeToMyMemberships(
   }, onError);
 }
 
-/** 팀 멤버 + 프로필 실시간 구독 */
-export function subscribeToTeamMembers(
-  teamId: string,
-  callback: (members: MemberWithProfile[]) => void,
-): () => void {
-  const q = query(collection(db, 'memberships'), where('teamId', '==', teamId));
-  return onSnapshot(q, async (snap) => {
-    const results = await Promise.all(
-      snap.docs.map(async (membershipDoc) => {
-        const { userId, role, joinedAt } = membershipDoc.data() as Omit<Membership, 'id'>;
-        const userSnap = await getDoc(doc(db, 'users', userId));
-        if (!userSnap.exists()) return null;
-        return {
-          membershipId: membershipDoc.id,
-          userId,
-          role: role as 'LEADER' | 'MEMBER',
-          joinedAt: (joinedAt as Timestamp | null) ?? null,
-          ...(userSnap.data() as { name: string; email: string; bio?: string; avatarUrl?: string }),
-        };
-      }),
-    );
-    callback(results.filter((r): r is MemberWithProfile => r !== null));
-  });
-}
-
 /** 팀 단건 조회 */
 export async function getTeam(teamId: string): Promise<Team | null> {
   const snap = await getDoc(doc(db, 'teams', teamId));
