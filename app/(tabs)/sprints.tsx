@@ -2,10 +2,11 @@ import { Text } from '@/components/ui/text';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
-TouchableOpacity,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -373,11 +374,11 @@ export default function SprintsScreen() {
           {/* 빈 상태 */}
           {!activeSprint && pastSprints.length === 0 && !showCreateForm && !loadingPast && (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyEmoji}>📋</Text>
               <Text style={styles.emptyTitle}>아직 스프린트가 없어요</Text>
               {isLeader
                 ? <Text style={styles.emptyDesc}>위의 버튼으로 첫 스프린트를 시작해보세요!</Text>
                 : <Text style={styles.emptyDesc}>팀장이 스프린트를 시작하면 여기에 표시돼요</Text>}
+              <Image source={require('@/assets/images/whale-sprint.png')} style={styles.emptyWhale} resizeMode="contain" />
             </View>
           )}
 
@@ -543,10 +544,11 @@ const styles = StyleSheet.create({
   loadMoreText: { fontSize: 14, fontWeight: '600', color: AppColors.primary },
 
   // 빈 상태
-  emptyBox: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+  emptyBox: { alignItems: 'center', paddingVertical: 40, gap: 8 },
   emptyEmoji: { fontSize: 48, marginBottom: 4 },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: AppColors.textPrimary },
   emptyDesc: { fontSize: 13, color: AppColors.textMuted, textAlign: 'center' },
+  emptyWhale: { width: 200, height: 200, marginTop: 60 },
 
   // 팀 선택 모달
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
