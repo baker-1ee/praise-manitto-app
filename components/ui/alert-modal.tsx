@@ -54,7 +54,7 @@ export function AlertModal({
                   style={[
                     styles.button,
                     filled ? { backgroundColor: btnColor } : styles.buttonOutline,
-                    resolvedButtons.length > 1 && { flex: 1 },
+                    { flex: 1 },
                   ]}
                   onPress={() => { btn.onPress?.(); onClose(); }}
                   activeOpacity={0.8}
