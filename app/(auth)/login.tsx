@@ -1,12 +1,13 @@
 import { Text } from '@/components/ui/text';
 import React, { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-TextInput,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -72,8 +73,14 @@ export default function LoginScreen() {
             disabled={google.loading}
             activeOpacity={0.75}
           >
-            <Text style={styles.googleG}>G</Text>
-            <Text style={styles.googleText}>Google로 계속하기</Text>
+            {google.loading ? (
+              <ActivityIndicator size="small" color="#4285F4" />
+            ) : (
+              <>
+                <Text style={styles.googleG}>G</Text>
+                <Text style={styles.googleText}>Google로 계속하기</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* 구분선 */}
