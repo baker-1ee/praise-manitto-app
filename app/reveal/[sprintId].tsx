@@ -89,10 +89,7 @@ export default function RevealScreen() {
                 {data.sprint.startDate.toDate().toLocaleDateString('ko-KR')} ~{' '}
                 {data.sprint.endDate.toDate().toLocaleDateString('ko-KR')}
               </Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>마니또 공개</Text>
-              </View>
-              <Text style={styles.totalText}>
+<Text style={styles.totalText}>
                 <Text style={styles.totalHighlight}>{data.pairs.length}명</Text>이 참여하여{' '}
                 총 <Text style={styles.totalHighlight}>{data.totalPraises}개</Text>의 칭찬이 오갔어요
               </Text>
@@ -160,7 +157,7 @@ function ChainCard({ pair, index }: { pair: RevealPair; index: number }) {
             <Text style={styles.praiseContent}>{praise.content}</Text>
             {praise.createdAt && (
               <Text style={styles.praiseDate}>
-                {praise.createdAt.toDate().toLocaleDateString('ko-KR')}
+                {praise.createdAt.toDate().toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
               </Text>
             )}
           </View>
@@ -180,12 +177,7 @@ const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: 8, paddingBottom: 24 },
   sprintName: { fontSize: 20, fontWeight: '800', color: AppColors.textPrimary, letterSpacing: -0.5 },
   sprintDate: { fontSize: 13, color: AppColors.textMuted },
-  badge: {
-    backgroundColor: AppColors.primaryMid, borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 5,
-  },
-  badgeText: { fontSize: 13, fontWeight: '700', color: AppColors.primary },
-  totalText: { fontSize: 14, color: AppColors.textMuted, textAlign: 'center' },
+totalText: { fontSize: 14, color: AppColors.textMuted, textAlign: 'center' },
   totalHighlight: { fontWeight: '800', color: AppColors.primary },
 
   // 카드
