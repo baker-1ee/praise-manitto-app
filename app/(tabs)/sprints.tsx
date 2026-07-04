@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth-context';
@@ -50,8 +50,7 @@ export default function SprintsScreen() {
   const [showTeamPicker, setShowTeamPicker] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [praiseCounts, setPraiseCounts] = useState<Record<string, number>>({});
-  const [participantsModal, setParticipantsModal] = useState<{ sprint: Sprint; members: { userId: string; name: string; bio?: string }[] } | null>(null);
+  const [participantsModal, setParticipantsModal] = useState<{ sprint: Sprint; members: { userId: string; name: string; bio?: string }[]; praiseCount?: number } | null>(null);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
 
@@ -70,30 +69,14 @@ export default function SprintsScreen() {
   const [sprintError, setSprintError] = useState('');
 
 
-  // 새로 로드된 지난 스프린트 칭찬 수 조회
-  useEffect(() => {
-    pastSprints.forEach(async (s) => {
-      if (praiseCounts[s.id] !== undefined) return;
-      const count = await getSprintPraiseCount(s.id);
-      setPraiseCounts((prev) => ({ ...prev, [s.id]: count }));
-    });
-  }, [pastSprints.map((s) => s.id).join(',')]);
-
-  // 진행 중 스프린트 칭찬 수는 탭 포커스마다 갱신
-  useFocusEffect(
-    useCallback(() => {
-      if (!activeSprint) return;
-      getSprintPraiseCount(activeSprint.id).then((count) =>
-        setPraiseCounts((prev) => ({ ...prev, [activeSprint.id]: count })),
-      );
-    }, [activeSprint?.id]),
-  );
-
   const handleOpenParticipants = async (sprint: Sprint) => {
     setLoadingParticipants(true);
     setParticipantsModal({ sprint, members: [] });
-    const members = await getSprintParticipants(sprint.id);
-    setParticipantsModal({ sprint, members });
+    const [members, praiseCount] = await Promise.all([
+      getSprintParticipants(sprint.id),
+      getSprintPraiseCount(sprint.id),
+    ]);
+    setParticipantsModal({ sprint, members, praiseCount });
     setLoadingParticipants(false);
   };
 
@@ -146,7 +129,7 @@ export default function SprintsScreen() {
     if (!activeSprint) return;
     setAlert({
       title: '스프린트를 삭제할까요?',
-      message: `'${activeSprint.name}'을 삭제하면 모든 칭찬 기록이 영구적으로 사라져요. 이 작업은 되돌릴 수 없어요.`,
+      message: `'${activeSprint.name}'을 삭제하면 모든 칭찬 기록이 사라져요. 이 작업은 되돌릴 수 없어요.`,
       buttons: [
         { text: '취소', style: 'cancel' },
         {
@@ -296,15 +279,13 @@ export default function SprintsScreen() {
                   </Text>
                 </View>
                 <View style={styles.pastBadgeRow}>
-                  {praiseCounts[activeSprint.id] !== undefined && (
-                    <TouchableOpacity
-                      style={styles.praiseBadge}
-                      onPress={() => handleOpenParticipants(activeSprint)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.praiseBadgeText}>💌 {praiseCounts[activeSprint.id]}</Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    style={styles.memberBadge}
+                    onPress={() => handleOpenParticipants(activeSprint)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.memberBadgeText}>👥 팀원</Text>
+                  </TouchableOpacity>
                   <View style={styles.activeBadge}>
                     <Text style={styles.activeBadgeText}>진행 중</Text>
                   </View>
@@ -331,27 +312,16 @@ export default function SprintsScreen() {
                         {formatSprintDate(s.startDate)} ~ {formatSprintDate(s.endDate)}
                       </Text>
                     </View>
-                    <View style={styles.pastBadgeRow}>
-                      {praiseCounts[s.id] !== undefined && (
-                        <TouchableOpacity
-                          style={styles.praiseBadge}
-                          onPress={(e) => { e.stopPropagation?.(); handleOpenParticipants(s); }}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Text style={styles.praiseBadgeText}>💌 {praiseCounts[s.id]}</Text>
-                        </TouchableOpacity>
-                      )}
-                      <View style={[
-                        styles.pastBadge,
-                        s.status === 'REVEALED' ? styles.pastBadgeRevealed : styles.pastBadgeClosed,
+                    <View style={[
+                      styles.pastBadge,
+                      s.status === 'REVEALED' ? styles.pastBadgeRevealed : styles.pastBadgeClosed,
+                    ]}>
+                      <Text style={[
+                        styles.pastBadgeText,
+                        s.status === 'REVEALED' ? styles.pastBadgeTextRevealed : styles.pastBadgeTextClosed,
                       ]}>
-                        <Text style={[
-                          styles.pastBadgeText,
-                          s.status === 'REVEALED' ? styles.pastBadgeTextRevealed : styles.pastBadgeTextClosed,
-                        ]}>
-                          {s.status === 'REVEALED' ? '공개됨 →' : '종료 →'}
-                        </Text>
-                      </View>
+                        {s.status === 'REVEALED' ? '공개됨 →' : '종료 →'}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -390,7 +360,12 @@ export default function SprintsScreen() {
         <TouchableOpacity style={styles.overlay} onPress={() => setParticipantsModal(null)}>
           <View style={styles.pickerSheet}>
             <Text style={styles.pickerTitle}>{participantsModal?.sprint.name}</Text>
-            <Text style={styles.participantsSubtitle}>참여 멤버 {participantsModal?.members.length ?? 0}명</Text>
+            <View style={styles.participantsSubtitleRow}>
+              <Text style={styles.participantsSubtitle}>참여 멤버 {participantsModal?.members.length ?? 0}명</Text>
+              {participantsModal?.praiseCount !== undefined && (
+                <Text style={styles.participantsPraiseCount}>💌 칭찬 {participantsModal.praiseCount}개</Text>
+              )}
+            </View>
             {loadingParticipants ? (
               <ActivityIndicator color={AppColors.primary} style={{ marginVertical: 20 }} />
             ) : (
@@ -527,6 +502,8 @@ const styles = StyleSheet.create({
   pastBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   praiseBadge: { backgroundColor: AppColors.primaryLight, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   praiseBadgeText: { fontSize: 11, fontWeight: '600', color: AppColors.primary },
+  memberBadge: { backgroundColor: '#f1f5f9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  memberBadgeText: { fontSize: 11, fontWeight: '600', color: AppColors.textMuted },
   pastBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   pastBadgeRevealed: { backgroundColor: AppColors.primaryMid },
   pastBadgeClosed: { backgroundColor: '#f1f5f9' },
@@ -557,7 +534,9 @@ const styles = StyleSheet.create({
     paddingTop: 20, paddingBottom: 36, paddingHorizontal: 20, gap: 4,
   },
   pickerTitle: { fontSize: 16, fontWeight: '700', color: AppColors.textPrimary, marginBottom: 2 },
-  participantsSubtitle: { fontSize: 12, color: AppColors.textMuted, marginBottom: 8 },
+  participantsSubtitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  participantsSubtitle: { fontSize: 12, color: AppColors.textMuted },
+  participantsPraiseCount: { fontSize: 12, fontWeight: '600', color: AppColors.primary },
   participantRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12 },
   participantName: { fontSize: 15, fontWeight: '600', color: AppColors.textPrimary },
   participantBio: { fontSize: 12, color: AppColors.textMuted, marginTop: 1 },

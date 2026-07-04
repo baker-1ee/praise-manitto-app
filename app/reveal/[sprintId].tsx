@@ -93,8 +93,8 @@ export default function RevealScreen() {
                 <Text style={styles.badgeText}>마니또 공개</Text>
               </View>
               <Text style={styles.totalText}>
-                이번 스프린트에서 총{' '}
-                <Text style={styles.totalHighlight}>{data.totalPraises}개</Text>의 칭찬이 오갔어요
+                <Text style={styles.totalHighlight}>{data.pairs.length}명</Text>이 참여하여{' '}
+                총 <Text style={styles.totalHighlight}>{data.totalPraises}개</Text>의 칭찬이 오갔어요
               </Text>
             </View>
 
