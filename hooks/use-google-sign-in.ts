@@ -1,23 +1,38 @@
-import { Alert } from 'react-native';
+import { useState } from 'react';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { useAuth } from '@/contexts/auth-context';
 
-// Google Sign-In은 EAS 개발 빌드 / 프로덕션 빌드에서만 동작합니다.
-// Expo Go는 custom URL scheme을 등록할 수 없어 OAuth 리다이렉트가 불가능합니다.
-// TODO: EAS 빌드 전환 시 expo-auth-session/providers/google 으로 교체
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 export function useGoogleSignIn() {
-  const signIn = () => {
-    Alert.alert(
-      'Google 로그인',
-      'Expo Go에서는 Google 로그인을 지원하지 않아요.\n이메일/비밀번호로 로그인해주세요.',
-      [{ text: '확인' }],
-    );
+  const { signInWithGoogle } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const signIn = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await GoogleSignin.hasPlayServices();
+      const { data } = await GoogleSignin.signIn();
+      if (!data?.idToken) throw new Error('Google 로그인 실패: 토큰을 받지 못했습니다.');
+      await signInWithGoogle({ idToken: data.idToken });
+    } catch (e: any) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) return;
+      if (e.code === statusCodes.IN_PROGRESS) return;
+      setError(e.message ?? 'Google 로그인 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
     signIn,
-    loading: false,
-    error: '',
-    clearError: () => {},
+    loading,
+    error,
+    clearError: () => setError(''),
     isAvailable: true,
   };
 }

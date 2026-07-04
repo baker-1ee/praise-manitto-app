@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "145966563075",
+    "project_id": "praise-manitto-f7e38",
+    "storage_bucket": "praise-manitto-f7e38.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:145966563075:android:a35cba3f966c286ec53336",
+        "android_client_info": {
+          "package_name": "com.jinung.praise.manitto"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "145966563075-7rh69ev265m1e162q5q44eckjtvumljp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jinung.praise.manitto",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "145966563075-pvod103jn0r7ja0c16kci4if693hunnu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jinung.praise.manitto",
+            "certificate_hash": "3bdf5b8aaa46972e82fbfae153610f4ca24f20a8"
+          }
+        },
+        {
+          "client_id": "145966563075-dn2b81jtqrc10f17c95ebsce2kfcoj6e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUuzsG3RXNzxQ8ceKJC8kA1mQDVaV8uBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "145966563075-dn2b81jtqrc10f17c95ebsce2kfcoj6e.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "145966563075-d6mqtucb3pff9q7e3l59j2dk3iijba75.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.jinung.praise.manitto"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

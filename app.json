@@ -9,9 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jinung.praise.manitto",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
+      "package": "com.jinung.praise.manitto",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#7c3aed",
         "foregroundImage": "./assets/images/icon-whale.png",
@@ -46,7 +50,13 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.145966563075-d6mqtucb3pff9q7e3l59j2dk3iijba75"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
