@@ -111,7 +111,7 @@ export default function SprintsScreen() {
         );
         setAlert({
           title: '공개 불가 🚫',
-          message: `아직 칭찬을 작성하지 않은 팀원이 있어요:\n\n${names.map((n) => `• ${n}`).join('\n')}\n\n모든 팀원이 칭찬을 작성해야 공개할 수 있습니다.`,
+          message: `아직 칭찬을 작성하지 않은 팀원이 있어요.\n\n${names.join(', ')}\n\n모두 칭찬을 작성해야 공개할 수 있습니다.`,
           type: 'error',
         });
         return;

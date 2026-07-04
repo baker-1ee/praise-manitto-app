@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
   interpolate,
@@ -22,6 +22,9 @@ interface ManitoCardProps {
 export function ManitoCard({ target }: ManitoCardProps) {
   const progress = useSharedValue(0);
   const [flipped, setFlipped] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const frontStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 0.45, 0.5], [1, 1, 0], 'clamp'),
@@ -35,9 +38,16 @@ export function ManitoCard({ target }: ManitoCardProps) {
 
   const handleFlip = () => {
     if (!target) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
     const next = flipped ? 0 : 1;
     progress.value = withTiming(next, { duration: 420 });
     setFlipped(!flipped);
+    if (next === 1) {
+      timerRef.current = setTimeout(() => {
+        progress.value = withTiming(0, { duration: 420 });
+        setFlipped(false);
+      }, 3000);
+    }
   };
 
   return (
@@ -45,7 +55,7 @@ export function ManitoCard({ target }: ManitoCardProps) {
       {/* 앞면 */}
       <Animated.View style={[styles.card, styles.front, frontStyle]}>
         <Image
-          source={require('@/assets/images/whale-question.png')}
+          source={require('@/assets/images/whale-secret.png')}
           style={styles.frontWhale}
           resizeMode="contain"
         />
