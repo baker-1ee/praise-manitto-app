@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  getCountFromServer,
   getDocs,
   onSnapshot,
   orderBy,
@@ -101,12 +102,12 @@ export async function getPraiseStats(
   return { sent: sentSnap.size, received: receivedSnap.size };
 }
 
-/** 스프린트 칭찬 총 개수 */
+/** 스프린트 칭찬 총 개수 — 문서 다운로드 없이 서버 집계 */
 export async function getSprintPraiseCount(sprintId: string): Promise<number> {
-  const snap = await getDocs(
+  const snap = await getCountFromServer(
     query(collection(db, 'praises'), where('sprintId', '==', sprintId)),
   );
-  return snap.size;
+  return snap.data().count;
 }
 
 // ─── 조르기 (nudge) ───────────────────────────────────────────────────────────

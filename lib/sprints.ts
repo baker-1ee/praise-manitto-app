@@ -335,19 +335,25 @@ export async function getMyPair(
   return { id: d.id, ...(d.data() as Omit<ManitoPair, 'id'>) };
 }
 
-/** 스프린트 참여 멤버 프로필 조회 (pairs 서브컬렉션 기반, 개인 칭찬 수 미포함) */
+/** 스프린트 참여 멤버 프로필 조회 — 배치 조회로 N+1 제거 */
 export async function getSprintParticipants(
   sprintId: string,
 ): Promise<{ userId: string; name: string; bio?: string }[]> {
   const pairsSnap = await getDocs(collection(db, 'sprints', sprintId, 'pairs'));
   const userIds = [...new Set(pairsSnap.docs.map((d) => d.data().manitoId as string))];
-  const profiles = await Promise.all(
-    userIds.map(async (userId) => {
-      const snap = await getDoc(doc(db, 'users', userId));
-      if (!snap.exists()) return null;
-      const { name, bio } = snap.data() as { name: string; bio?: string };
-      return { userId, name, bio };
-    }),
-  );
-  return profiles.filter((p): p is NonNullable<typeof p> => p !== null);
+  if (userIds.length === 0) return [];
+
+  const profiles: { userId: string; name: string; bio?: string }[] = [];
+  const chunkSize = 30;
+  for (let i = 0; i < userIds.length; i += chunkSize) {
+    const chunk = userIds.slice(i, i + chunkSize);
+    const usersSnap = await getDocs(
+      query(collection(db, 'users'), where('__name__', 'in', chunk)),
+    );
+    usersSnap.docs.forEach((d) => {
+      const { name, bio } = d.data() as { name: string; bio?: string };
+      profiles.push({ userId: d.id, name, bio });
+    });
+  }
+  return profiles;
 }

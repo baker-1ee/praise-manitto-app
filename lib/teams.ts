@@ -164,34 +164,44 @@ export async function getTeam(teamId: string): Promise<Team | null> {
   return { id: snap.id, ...(snap.data() as Omit<Team, 'id'>) };
 }
 
-/** 팀 멤버 + 프로필 목록 */
+/** 팀 멤버 + 프로필 목록 — 배치 조회로 N+1 제거 */
 export async function getTeamMembersWithProfiles(teamId: string): Promise<MemberWithProfile[]> {
   const membershipsSnap = await getDocs(
     query(collection(db, 'memberships'), where('teamId', '==', teamId)),
   );
+  if (membershipsSnap.empty) return [];
 
-  const results = await Promise.all(
-    membershipsSnap.docs.map(async (membershipDoc) => {
-      const { userId, role, joinedAt } = membershipDoc.data() as Omit<Membership, 'id'>;
-      const userSnap = await getDoc(doc(db, 'users', userId));
-      if (!userSnap.exists()) return null;
-      const userData = userSnap.data() as {
-        name: string;
-        email: string;
-        bio?: string;
-        avatarUrl?: string;
-      };
+  const memberships = membershipsSnap.docs.map((d) => ({
+    membershipId: d.id,
+    ...(d.data() as Omit<Membership, 'id'>),
+  }));
+
+  const userIds = memberships.map((m) => m.userId);
+  const userMap = new Map<string, { name: string; email: string; bio?: string; avatarUrl?: string }>();
+  const chunkSize = 30;
+  for (let i = 0; i < userIds.length; i += chunkSize) {
+    const chunk = userIds.slice(i, i + chunkSize);
+    const usersSnap = await getDocs(
+      query(collection(db, 'users'), where('__name__', 'in', chunk)),
+    );
+    usersSnap.docs.forEach((d) => {
+      userMap.set(d.id, d.data() as { name: string; email: string; bio?: string; avatarUrl?: string });
+    });
+  }
+
+  return memberships
+    .map((m) => {
+      const userData = userMap.get(m.userId);
+      if (!userData) return null;
       return {
-        membershipId: membershipDoc.id,
-        userId,
-        role: role as 'LEADER' | 'MEMBER',
-        joinedAt: (joinedAt as Timestamp | null) ?? null,
+        membershipId: m.membershipId,
+        userId: m.userId,
+        role: m.role as 'LEADER' | 'MEMBER',
+        joinedAt: (m.joinedAt as Timestamp | null) ?? null,
         ...userData,
       };
-    }),
-  );
-
-  return results.filter((r): r is MemberWithProfile => r !== null);
+    })
+    .filter((r): r is MemberWithProfile => r !== null);
 }
 
 /** 팀 나가기 (membership 삭제) */
