@@ -42,7 +42,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/whale-question.png",
-          "imageWidth": 200,
+          "imageWidth": 120,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
