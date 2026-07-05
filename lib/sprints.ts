@@ -80,7 +80,7 @@ export async function createSprint(params: {
 
   for (const pair of pairs) {
     const pairRef = doc(collection(db, 'sprints', sprintRef.id, 'pairs'));
-    batch.set(pairRef, { manitoId: pair.manitoId, targetId: pair.targetId });
+    batch.set(pairRef, { teamId, manitoId: pair.manitoId, targetId: pair.targetId });
   }
 
   await batch.commit();
