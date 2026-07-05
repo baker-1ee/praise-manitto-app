@@ -4,7 +4,7 @@
     "slug": "praise-manitto-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon-whale.png",
+    "icon": "./assets/images/whale-icon.png",
     "scheme": "praisemanittoapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,22 +18,22 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#7c3aed",
-        "foregroundImage": "./assets/images/icon-whale.png",
-        "monochromeImage": "./assets/images/icon-whale.png"
+        "foregroundImage": "./assets/images/whale-icon.png",
+        "monochromeImage": "./assets/images/whale-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/icon-whale.png"
+      "favicon": "./assets/images/whale-icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon-whale.png",
+          "icon": "./assets/images/whale-icon.png",
           "color": "#ffffff",
           "sounds": []
         }
@@ -41,7 +41,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/whale.png",
+          "image": "./assets/images/whale-splash.png",
           "imageWidth": 120,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

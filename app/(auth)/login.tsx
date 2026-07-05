@@ -61,7 +61,7 @@ export default function LoginScreen() {
         >
           {/* 로고 */}
           <View style={styles.header}>
-            <Image source={require('@/assets/images/whale.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('@/assets/images/whale-splash.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.appName}>칭찬 마니또</Text>
             <Text style={styles.subtitle}>팀원에게 따뜻한 칭찬을 전해보세요</Text>
           </View>
