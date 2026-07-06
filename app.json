@@ -56,7 +56,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.145966563075-d6mqtucb3pff9q7e3l59j2dk3iijba75"
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ],
     "experiments": {
       "typedRoutes": true,
