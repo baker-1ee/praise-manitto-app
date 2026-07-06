@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "145966563075-f0spk7hf4bcgfti192chokbj38s7083b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jinung.praise.manitto",
+            "certificate_hash": "0be83640dd9a7103f8659278cc242f1b23545a1d"
+          }
+        },
+        {
           "client_id": "145966563075-pvod103jn0r7ja0c16kci4if693hunnu.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
