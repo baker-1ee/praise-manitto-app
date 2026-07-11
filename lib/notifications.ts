@@ -72,7 +72,11 @@ export async function sendPushNotifications(
       const res = await fetch(EXPO_PUSH_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(chunk.map((to) => ({ to, title, body, sound: 'default' }))),
+        body: JSON.stringify(chunk.map((to) => ({
+          to, title, body, sound: 'default',
+          priority: 'high', // FCM에 높은 우선순위로 전달 — 없으면 화면 꺼짐/잠금 상태에서 즉시 표시 안 될 수 있음
+          channelId: 'default', // registerForPushNotifications가 만든 MAX 중요도 채널로 라우팅
+        }))),
       });
       // Expo 푸시 API는 요청 자체가 잘못돼도 HTTP 200을 줄 수 있고,
       // 개별 발송 실패는 응답 body의 티켓 배열에만 담겨오므로 반드시 확인해야 함
