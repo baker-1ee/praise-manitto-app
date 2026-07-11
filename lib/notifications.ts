@@ -41,3 +41,29 @@ export async function registerForPushNotifications(): Promise<string | null> {
   const token = (await Notifications.getExpoPushTokenAsync()).data;
   return token;
 }
+
+const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
+const EXPO_PUSH_CHUNK_SIZE = 100;
+
+/** Expo 푸시 토큰들로 알림 발송 — 발신자 클라이언트에서 직접 호출 (베스트 에포트, 실패해도 던지지 않음) */
+export async function sendPushNotifications(
+  tokens: (string | null | undefined)[],
+  title: string,
+  body: string,
+): Promise<void> {
+  const validTokens = [...new Set(tokens.filter((t): t is string => !!t))];
+  if (validTokens.length === 0) return;
+
+  try {
+    for (let i = 0; i < validTokens.length; i += EXPO_PUSH_CHUNK_SIZE) {
+      const chunk = validTokens.slice(i, i + EXPO_PUSH_CHUNK_SIZE);
+      await fetch(EXPO_PUSH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(chunk.map((to) => ({ to, title, body, sound: 'default' }))),
+      });
+    }
+  } catch (e) {
+    console.warn('푸시 알림 발송 실패', e);
+  }
+}

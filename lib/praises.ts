@@ -14,6 +14,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { sendPushNotifications } from '@/lib/notifications';
+import { getUserProfile } from '@/lib/users';
 
 /** 칭찬 작성 후 수정 가능한 시간(ms) — Firestore 보안 규칙과 동일하게 유지 */
 export const PRAISE_EDIT_WINDOW_MS = 10 * 60 * 1000;
@@ -52,6 +54,18 @@ export async function writePraise(params: {
     ...params,
     createdAt: serverTimestamp(),
   });
+
+  // 알림 발송 실패가 칭찬 작성 자체를 실패시키면 안 되므로 베스트 에포트로 처리
+  try {
+    const toProfile = await getUserProfile(params.toUserId);
+    await sendPushNotifications(
+      [toProfile?.pushToken],
+      '🐳 마니또의 칭찬이 도착했어요 💌',
+      '지금 확인해보세요!',
+    );
+  } catch (e) {
+    console.warn('칭찬 수신 알림 발송 실패', e);
+  }
 }
 
 /** 작성 후 10분 이내인지 확인 (수정 가능 여부) */

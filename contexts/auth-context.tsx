@@ -13,11 +13,13 @@ import { auth } from '@/lib/firebase';
 import {
   createUserProfile,
   getUserProfile,
+  savePushToken,
   subscribeToUserProfile,
   updateUserProfile,
   UserProfile,
 } from '@/lib/users';
 import { getAuthErrorMessage } from '@/lib/auth-errors';
+import { registerForPushNotifications } from '@/lib/notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -62,6 +64,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       () => setLoading(false),
     );
     return unsub;
+  }, [user?.uid]);
+
+  // 로그인 상태가 되면(기존 세션 복원 포함) 푸시 토큰을 등록/갱신
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const token = await registerForPushNotifications();
+        if (token) await savePushToken(user.uid, token);
+      } catch (e) {
+        console.warn('푸시 토큰 등록 실패', e);
+      }
+    })();
   }, [user?.uid]);
 
   const signIn = async (email: string, password: string) => {

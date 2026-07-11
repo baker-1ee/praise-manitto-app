@@ -17,6 +17,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { assignManito, buildPairWeights, getHistoryDepth, PastPair } from '@/lib/manito';
+import { sendPushNotifications } from '@/lib/notifications';
+import { getUserProfilesByIds } from '@/lib/users';
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 
@@ -118,6 +120,20 @@ export async function createSprint(params: {
   }
 
   await batch.commit();
+
+  // 알림 발송 실패가 스프린트 생성 자체를 실패시키면 안 되므로 베스트 에포트로 처리
+  try {
+    const recipientIds = memberIds.filter((id) => id !== createdBy);
+    const profiles = await getUserProfilesByIds(recipientIds);
+    await sendPushNotifications(
+      profiles.map((p) => p.pushToken),
+      '🐳 스프린트가 시작됐어요 🚀',
+      '나는 누구의 마니또일까요? 확인해보세요!',
+    );
+  } catch (e) {
+    console.warn('스프린트 시작 알림 발송 실패', e);
+  }
+
   return sprintRef.id;
 }
 
@@ -244,8 +260,24 @@ export async function deleteSprint(sprintId: string): Promise<void> {
 }
 
 /** 스프린트 공개 (status → REVEALED) */
-export async function revealSprint(sprintId: string): Promise<void> {
+export async function revealSprint(sprintId: string, excludeUserId?: string): Promise<void> {
   await updateDoc(doc(db, 'sprints', sprintId), { status: 'REVEALED' });
+
+  // 알림 발송 실패가 공개 처리 자체를 실패시키면 안 되므로 베스트 에포트로 처리
+  try {
+    const participants = await getSprintParticipants(sprintId);
+    const recipientIds = participants
+      .map((p) => p.userId)
+      .filter((id) => id !== excludeUserId);
+    const profiles = await getUserProfilesByIds(recipientIds);
+    await sendPushNotifications(
+      profiles.map((p) => p.pushToken),
+      '🐳 마니또가 공개됐어요 🎉',
+      '내 마니또는 누구였을까요? 지금 확인해보세요!',
+    );
+  } catch (e) {
+    console.warn('스프린트 공개 알림 발송 실패', e);
+  }
 }
 
 /** 공개된 스프린트 전체 데이터 조회 (결과 화면용) */
