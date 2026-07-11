@@ -16,7 +16,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { assignManito } from '@/lib/manito';
+import { assignManito, buildPairWeights, getHistoryDepth, PastPair } from '@/lib/manito';
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +46,38 @@ export function formatSprintDate(ts: Timestamp): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// ─── 마니또 배정 이력 조회 ────────────────────────────────────────────────────
+
+/** 최근 M(N)개 스프린트의 배정 이력으로 쌍별 가중치 계산
+ *  M(N) = clamp(⌈(N-1)/2⌉, 3, 20) — lib/manito.ts의 getHistoryDepth 참고 */
+async function getRecentPairWeights(
+  teamId: string,
+  currentMemberIds: string[],
+): Promise<Map<string, number>> {
+  const depth = getHistoryDepth(currentMemberIds.length);
+  const memberSet = new Set(currentMemberIds);
+
+  const sprintsSnap = await getDocs(
+    query(
+      collection(db, 'sprints'),
+      where('teamId', '==', teamId),
+      orderBy('createdAt', 'desc'),
+      limit(depth),
+    ),
+  );
+
+  const pastAssignments = await Promise.all(
+    sprintsSnap.docs.map(async (sprintDoc) => {
+      const pairsSnap = await getDocs(collection(db, 'sprints', sprintDoc.id, 'pairs'));
+      return pairsSnap.docs
+        .map((d) => d.data() as PastPair)
+        .filter((p) => memberSet.has(p.manitoId) && memberSet.has(p.targetId));
+    }),
+  );
+
+  return buildPairWeights(pastAssignments);
+}
+
 // ─── 스프린트 CRUD ────────────────────────────────────────────────────────────
 
 /** 스프린트 생성 + 마니또 쌍 배정 (배치 쓰기) */
@@ -64,7 +96,9 @@ export async function createSprint(params: {
     query(collection(db, 'sprints'), where('teamId', '==', teamId), where('status', '==', 'ACTIVE')),
   );
   if (!activeSnap.empty) throw new Error('이미 진행 중인 스프린트가 있습니다.');
-  const pairs = assignManito(memberIds);
+
+  const pairWeights = await getRecentPairWeights(teamId, memberIds);
+  const pairs = assignManito(memberIds, pairWeights);
   const batch = writeBatch(db);
 
   const sprintRef = doc(collection(db, 'sprints'));
