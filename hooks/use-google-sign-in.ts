@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useAuth } from '@/contexts/auth-context';
 
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// GoogleSignin.configure()는 contexts/auth-context.tsx 모듈 로드 시점에 한 번만 실행됨
 
 export function useGoogleSignIn() {
   const { signInWithGoogle } = useAuth();

@@ -84,6 +84,16 @@ export async function updateUserProfile(
   await updateDoc(doc(db, 'users', uid), payload);
 }
 
+/**
+ * 회원 탈퇴 시 프로필을 익명화 — 완전 삭제하지 않고 이름만 "탈퇴한 사용자"로 남김
+ * (다른 필드는 setDoc 덮어쓰기로 전부 제거됨: 이메일·소개·푸시토큰 등)
+ * 과거 칭찬 기록·마니또 짝은 그대로 남아있어야 하므로, uid로 이름을 조회하는
+ * 기존 코드(getUserProfile 등)가 수정 없이 "탈퇴한 사용자"를 보여주게 됨
+ */
+export async function anonymizeUserProfile(uid: string): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { name: '탈퇴한 사용자', email: '' });
+}
+
 export function subscribeToUserProfile(
   uid: string,
   callback: (profile: UserProfile | null) => void,

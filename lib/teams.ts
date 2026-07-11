@@ -12,6 +12,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
@@ -182,6 +183,49 @@ export async function getTeamMembersWithProfiles(teamId: string): Promise<Member
 /** 팀 나가기 (membership 삭제) */
 export async function leaveMembership(membershipId: string): Promise<void> {
   await deleteDoc(doc(db, 'memberships', membershipId));
+}
+
+/** 특정 유저의 멤버십 전체 조회 (회원 탈퇴 시 소속 팀 정리용) */
+export async function getMembershipsByUserId(userId: string): Promise<Membership[]> {
+  const snap = await getDocs(
+    query(collection(db, 'memberships'), where('userId', '==', userId)),
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Membership, 'id'>) }));
+}
+
+/** 리더 자동 위임 대상 조회 — 나를 제외하고 가장 먼저 합류한 팀원 */
+export async function findNextLeaderCandidate(
+  teamId: string,
+  excludeUserId: string,
+): Promise<{ membershipId: string; userId: string } | null> {
+  const snap = await getDocs(
+    query(collection(db, 'memberships'), where('teamId', '==', teamId)),
+  );
+  const others = snap.docs
+    .map((d) => ({ membershipId: d.id, ...(d.data() as Omit<Membership, 'id'>) }))
+    .filter((m) => m.userId !== excludeUserId);
+  if (others.length === 0) return null;
+
+  others.sort((a, b) => {
+    const aTime = (a.joinedAt as Timestamp | null)?.toMillis() ?? 0;
+    const bTime = (b.joinedAt as Timestamp | null)?.toMillis() ?? 0;
+    return aTime - bTime;
+  });
+  return { membershipId: others[0].membershipId, userId: others[0].userId };
+}
+
+/** 리더 위임 — 팀의 createdBy와 두 멤버십의 role을 함께 갱신 */
+export async function transferLeadership(
+  teamId: string,
+  fromMembershipId: string,
+  toMembershipId: string,
+  toUserId: string,
+): Promise<void> {
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'teams', teamId), { createdBy: toUserId });
+  batch.update(doc(db, 'memberships', fromMembershipId), { role: 'MEMBER' });
+  batch.update(doc(db, 'memberships', toMembershipId), { role: 'LEADER' });
+  await batch.commit();
 }
 
 /** 팀 삭제 (LEADER 전용) — 스프린트·pairs·칭찬·nudgeLogs·멤버십 전체 삭제 */

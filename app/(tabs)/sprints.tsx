@@ -104,11 +104,11 @@ export default function SprintsScreen() {
         );
         setAlert({
           title: '아직 칭찬을 안 쓴 팀원이 있어요 🚫',
-          message: `${names.join(', ')}\n\n모두 칭찬을 작성하지 않았어요. 그래도 공개할까요?`,
+          message: `${names.join(', ')}\n\n모두 칭찬을 작성하지 않았어요. \n그래도 공개할까요?`,
           type: 'error',
           buttons: [
             { text: '취소', style: 'cancel' },
-            { text: '그래도 공개하기 🎉', style: 'destructive', onPress: doReveal },
+            { text: '공개하기', style: 'destructive', onPress: doReveal },
           ],
         });
         return;

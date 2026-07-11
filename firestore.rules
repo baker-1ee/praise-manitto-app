@@ -3,6 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // 사용자 프로필 — 로그인한 누구나 읽기 (팀원 표시에 필요), 본인만 쓰기
+    // 삭제는 불가 — 회원 탈퇴 시에도 완전 삭제 대신 익명화(update)만 수행
+    // (과거 칭찬 기록에 남은 uid로 이름을 조회할 때 "탈퇴한 사용자"를 보여주기 위함)
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == userId;
@@ -20,6 +22,7 @@ service cloud.firestore {
 
     // 멤버십 — 로그인한 누구나 읽기 (팀원 목록 조회에 필요)
     //           본인 것만 생성, 본인 or 팀 생성자만 삭제 (팀 삭제 시 전체 삭제)
+    //           role 필드만 팀 생성자가 수정 가능 (리더 위임)
     match /memberships/{membershipId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null &&
@@ -28,7 +31,9 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid ||
         get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.createdBy == request.auth.uid
       );
-      allow update: if false;
+      allow update: if request.auth != null &&
+        get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.createdBy == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
     }
 
     // 스프린트 — 로그인한 누구나 읽기, 생성은 팀 리더만, 수정·삭제도 팀 리더만
@@ -39,45 +44,47 @@ service cloud.firestore {
       allow update, delete: if request.auth != null &&
         get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.createdBy == request.auth.uid;
 
-      // 마니또 쌍 — 읽기 허용, 생성·삭제는 스프린트 생성자(리더)만
-      //   생성: 같은 배치에서 만들어지는 sprints 문서는 get()으로 못 보므로
-      //         pair 문서 자체에 실린 teamId로 팀 리더 여부를 확인
+      // 마니또 쌍 — 읽기 허용, 생성·삭제는 팀의 현재 리더만
+      //   pair 문서 자체에 실린 teamId로 팀 리더 여부를 확인
+      //   (스프린트 생성 당시의 createdBy가 아닌 팀의 현재 createdBy를 봐야
+      //    리더 위임 이후에도 과거 스프린트를 정리할 수 있음)
       match /pairs/{pairId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null &&
           get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.createdBy == request.auth.uid;
         allow delete: if request.auth != null &&
-          get(/databases/$(database)/documents/sprints/$(sprintId)).data.createdBy == request.auth.uid;
+          get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.createdBy == request.auth.uid;
         allow update: if false;
       }
     }
 
     // 칭찬 — 로그인한 누구나 읽기, 본인이 보낸 것만 생성
-    //        삭제는 스프린트 생성자(팀 삭제 시)만 허용
+    //        삭제는 팀의 현재 리더(팀 삭제 시)만 허용
     //        수정은 작성자 본인이 작성 후 10분 이내에 content/categories만 변경 가능
     match /praises/{praiseId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null &&
         request.resource.data.fromUserId == request.auth.uid;
       allow delete: if request.auth != null &&
-        get(/databases/$(database)/documents/sprints/$(resource.data.sprintId)).data.createdBy == request.auth.uid;
+        get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.createdBy == request.auth.uid;
       allow update: if request.auth != null &&
         resource.data.fromUserId == request.auth.uid &&
         request.time < resource.data.createdAt + duration.value(10, 'm') &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'categories']);
     }
 
-    // 조르기 로그 — 본인 것만 생성, 본인 또는 스프린트 생성자(정리용)만 읽기,
-    //             스프린트 생성자만 삭제 (팀 삭제 시)
+    // 조르기 로그 — 본인 것만 생성, 본인 또는 팀의 현재 리더(정리용)만 읽기,
+    //             팀의 현재 리더만 삭제 (팀 삭제 시)
+    //             (스프린트에는 teamId가 없어 sprints를 한 단계 거쳐 teams까지 조회)
     match /nudgeLogs/{nudgeId} {
       allow read: if request.auth != null && (
         resource.data.requesterId == request.auth.uid ||
-        get(/databases/$(database)/documents/sprints/$(resource.data.sprintId)).data.createdBy == request.auth.uid
+        get(/databases/$(database)/documents/teams/$(get(/databases/$(database)/documents/sprints/$(resource.data.sprintId)).data.teamId)).data.createdBy == request.auth.uid
       );
       allow create: if request.auth != null &&
         request.resource.data.requesterId == request.auth.uid;
       allow delete: if request.auth != null &&
-        get(/databases/$(database)/documents/sprints/$(resource.data.sprintId)).data.createdBy == request.auth.uid;
+        get(/databases/$(database)/documents/teams/$(get(/databases/$(database)/documents/sprints/$(resource.data.sprintId)).data.teamId)).data.createdBy == request.auth.uid;
       allow update: if false;
     }
   }

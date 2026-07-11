@@ -21,6 +21,7 @@ import {
   MemberWithProfile,
   regenerateInviteCode,
   Team,
+  transferLeadership,
 } from '@/lib/teams';
 import { Avatar } from '@/components/avatar';
 import { AppColors } from '@/constants/theme';
@@ -42,6 +43,7 @@ export default function TeamManageScreen() {
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [kickingId, setKickingId] = useState<string | null>(null);
+  const [transferringId, setTransferringId] = useState<string | null>(null);
   const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -111,6 +113,32 @@ export default function TeamManageScreen() {
               setAlert({ title: '오류', message: '팀 삭제에 실패했습니다. 다시 시도해주세요.', type: 'error' });
             } finally {
               setDeleting(false);
+            }
+          },
+        },
+      ],
+    });
+  };
+
+  const handleTransfer = (member: MemberWithProfile) => {
+    if (!myMembership) return;
+    setAlert({
+      title: '리더 위임',
+      message: `'${member.name}'님에게 리더를 위임할까요? 위임하면 나는 일반 팀원이 돼요.`,
+      buttons: [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '위임하기',
+          style: 'destructive',
+          onPress: async () => {
+            setTransferringId(member.membershipId);
+            try {
+              await transferLeadership(teamId!, myMembership.membershipId, member.membershipId, member.userId);
+              await loadData();
+            } catch {
+              setAlert({ title: '오류', message: '리더 위임에 실패했습니다. 다시 시도해주세요.', type: 'error' });
+            } finally {
+              setTransferringId(null);
             }
           },
         },
@@ -226,15 +254,26 @@ export default function TeamManageScreen() {
                   <Text style={styles.meLabel}>나</Text>
                 )}
                 {isLeader && item.userId !== user?.uid && (
-                  <TouchableOpacity
-                    style={styles.kickButton}
-                    onPress={() => handleKick(item)}
-                    disabled={kickingId === item.membershipId}
-                  >
-                    {kickingId === item.membershipId
-                      ? <ActivityIndicator size={12} color={AppColors.error} />
-                      : <Text style={styles.kickButtonText}>내보내기</Text>}
-                  </TouchableOpacity>
+                  <View style={styles.memberActions}>
+                    <TouchableOpacity
+                      style={styles.transferButton}
+                      onPress={() => handleTransfer(item)}
+                      disabled={transferringId === item.membershipId}
+                    >
+                      {transferringId === item.membershipId
+                        ? <ActivityIndicator size={12} color={AppColors.primary} />
+                        : <Text style={styles.transferButtonText}>위임</Text>}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.kickButton}
+                      onPress={() => handleKick(item)}
+                      disabled={kickingId === item.membershipId}
+                    >
+                      {kickingId === item.membershipId
+                        ? <ActivityIndicator size={12} color={AppColors.error} />
+                        : <Text style={styles.kickButtonText}>방출</Text>}
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             ))}
@@ -325,6 +364,15 @@ const styles = StyleSheet.create({
     fontSize: 11, fontWeight: '700', color: AppColors.primary,
     backgroundColor: AppColors.primaryLight,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+  },
+  memberActions: {
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+  },
+  transferButton: {
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  transferButtonText: {
+    fontSize: 12, fontWeight: '600', color: AppColors.primary,
   },
   kickButton: {
     paddingHorizontal: 8, paddingVertical: 4,
