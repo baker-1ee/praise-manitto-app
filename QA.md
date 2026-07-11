@@ -100,6 +100,14 @@
 
 ---
 
+### BUG-011 ✅ 해결됨
+**제목**: "조르기" 대상 방향이 반대로 되어 있음  
+**증상**: "마니또에게 칭찬 조르기" 버튼이 실제로는 "내가 칭찬해야 할 사람"(`myPair.targetId`)에게 나가고 있었음. 정작 "나를 칭찬해야 할 사람"에게는 아무 것도 안 감  
+**원인**: `getMyPair`는 "내가 마니또인 대상"만 조회하고, 반대 방향("나를 타겟으로 하는 사람") 조회 함수가 아예 없었음  
+**수정**: `lib/sprints.ts`에 `getMyManitoPair`(역방향 조회) 추가, `SprintContext`에 `myManitoId` 추가, 조르기가 이 값을 사용하도록 수정
+
+---
+
 ## 기능 요청 (Feature Requests)
 
 ### FEAT-001 ✅ 해결됨
@@ -157,6 +165,37 @@
 
 ---
 
+### FEAT-007 ✅ 해결됨
+**제목**: 푸시 알림 (칭찬 수신 / 스프린트 시작 / 스프린트 공개 / 조르기) + 알림 끄기 설정  
+**요청 내용**: FB-003, FB-004 참고 — 칭찬 받았을 때, 스프린트 시작/공개 시 알림. 이후 조르기 시 알림도 추가 요청  
+**방식**: 백엔드(Cloud Functions) 없이 클라이언트가 Expo Push API를 직접 호출 (Firebase Blaze 요금제 전환 불필요)  
+**수정**:
+- `lib/notifications.ts`: `registerForPushNotifications`, `sendPushNotifications`(pushEnabled === false인 대상은 API 호출 자체를 안 함) 추가
+- `lib/users.ts`: `UserProfile.pushToken`/`pushEnabled` 필드, `savePushToken`, `setPushEnabled`, `getUserProfilesByIds` 추가
+- `contexts/auth-context.tsx`: 로그인/세션 복원 시 자동 토큰 등록 (단, `pushEnabled === false`면 건너뜀 — 안 그러면 꺼놔도 재로그인 시 자동으로 다시 켜지는 문제 있었음)
+- `lib/praises.ts` `writePraise`/`recordNudge`, `lib/sprints.ts` `createSprint`/`revealSprint`: 각 이벤트 시점에 발송
+- `app/(tabs)/profile.tsx`: 푸시 알림 켜기/끄기 토글 추가 (끌 때 토큰은 유지, 켤 때 토큰 있으면 권한 재요청 없이 재사용)
+- Expo 프로젝트(EAS) 신규 연결 + Firebase 서비스 계정 키를 FCM V1 자격증명으로 Expo에 업로드 (Expo Push → FCM 라우팅에 필요)
+- 발송 요청에 `priority: 'high'` + `channelId: 'default'` 누락으로 화면 꺼짐/잠금 상태에서 즉시 표시 안 되던 문제 수정
+- `public/privacy-policy.html`: 푸시 토큰 수집 및 Expo(650 Industries) 처리위탁 명시
+
+---
+
+## 계획 중 (Planned, 미착수)
+
+### FEAT-008 📋 설계 완료 (미구현)
+**제목**: 팀 초대 코드 → 앱 링크 공유 (딥링크)  
+**요청 내용**: 팀 관리 화면의 "초대 코드 복사"에 더해, 링크로 공유할 수 있게. 링크 클릭 시 앱 설치돼 있으면 바로 팀 가입, 없으면 Play스토어로 이동  
+**설계 방향**:
+- Firebase Dynamic Links는 Google이 신규 사용 중단 + 종료 예정이라 사용 불가 → **Android App Links**로 구현
+- `https://praise-manitto-f7e38.web.app/join/{code}` 형태 링크, Firebase Hosting에 `.well-known/assetlinks.json`(릴리즈 서명 SHA-256 필요) + 앱 미설치 시 Play스토어 유도 랜딩 페이지 추가
+- `app.json`에 `android.intentFilters` 추가 → **네이티브 설정 변경이라 새 릴리즈 빌드 필요** (기존 사용자도 업데이트해야 반영)
+- 앱에서는 기존 `(onboarding)/join.tsx`의 `joinTeam(code)` 로직 재사용 (딥링크로 들어온 코드 자동 입력 + 로그인 필요시 로그인 후 자동 가입)
+- 팀 관리 화면에 RN `Share` API로 "링크 공유" 버튼 추가
+- iOS는 지금까지 빌드 이력이 없어 이번 범위에서는 제외 (Android만)
+
+---
+
 ## 베타 테스터 피드백 (Tester Feedback)
 
 > 비공개 테스트 중 테스터가 제보한 의견을 기록. 검토 후 버그/기능요청으로 승격하거나 대응 방침 결정.
@@ -169,17 +208,18 @@
 
 ---
 
-### FB-003 🔍 검토 필요
+### FB-003 ✅ 조치 완료
 **제목**: 칭찬 수신 시 푸시 알림 요청  
 **요청 내용**: 칭찬을 받았을 때 푸시 알림이 왔으면 좋겠다는 의견  
+**조치**: FEAT-007로 승격 — 푸시 알림 기능 전체 추가  
 **제보일**: 2026-07-10
 
 ---
 
-### FB-004 🔍 검토 필요
+### FB-004 ✅ 조치 완료
 **제목**: "마니또에게 칭찬 조르기" 클릭 시 상대방 푸시 알림 여부 문의  
 **문의 내용**: 조르기 버튼을 눌렀을 때 상대방에게 푸시 알림이 가는지 궁금하다는 의견  
-**확인 결과 (코드 레벨)**: 현재 미발송. `handleNudge`(`app/(tabs)/index.tsx`) → `recordNudge`(`lib/praises.ts`)는 `nudgeLogs` 컬렉션에 기록만 하고 푸시 발송 로직 없음. `lib/notifications.ts`에 Expo 푸시 토큰 등록 함수는 있으나 조르기·칭찬 수신 등 어떤 이벤트에서도 실제 발송(트리거)하는 코드는 아직 없음 → FB-003과 함께 검토 필요  
+**조치**: FEAT-007로 승격 — 조르기 시에도 푸시 알림 발송하도록 추가 (겸사겸사 조르기 대상 방향이 반대로 돼 있던 기존 버그도 같이 수정, BUG-011 참고)  
 **제보일**: 2026-07-10
 
 ---
