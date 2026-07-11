@@ -41,6 +41,7 @@ export default function TeamManageScreen() {
   const [regenerating, setRegenerating] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [kickingId, setKickingId] = useState<string | null>(null);
   const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -110,6 +111,31 @@ export default function TeamManageScreen() {
               setAlert({ title: '오류', message: '팀 삭제에 실패했습니다. 다시 시도해주세요.', type: 'error' });
             } finally {
               setDeleting(false);
+            }
+          },
+        },
+      ],
+    });
+  };
+
+  const handleKick = (member: MemberWithProfile) => {
+    setAlert({
+      title: '팀원 내보내기',
+      message: `'${member.name}'님을 팀에서 내보낼까요?`,
+      buttons: [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '내보내기',
+          style: 'destructive',
+          onPress: async () => {
+            setKickingId(member.membershipId);
+            try {
+              await leaveMembership(member.membershipId);
+              await loadData();
+            } catch {
+              setAlert({ title: '오류', message: '내보내기에 실패했습니다. 다시 시도해주세요.', type: 'error' });
+            } finally {
+              setKickingId(null);
             }
           },
         },
@@ -198,6 +224,17 @@ export default function TeamManageScreen() {
                 </View>
                 {item.userId === user?.uid && item.role !== 'LEADER' && (
                   <Text style={styles.meLabel}>나</Text>
+                )}
+                {isLeader && item.userId !== user?.uid && (
+                  <TouchableOpacity
+                    style={styles.kickButton}
+                    onPress={() => handleKick(item)}
+                    disabled={kickingId === item.membershipId}
+                  >
+                    {kickingId === item.membershipId
+                      ? <ActivityIndicator size={12} color={AppColors.error} />
+                      : <Text style={styles.kickButtonText}>내보내기</Text>}
+                  </TouchableOpacity>
                 )}
               </View>
             ))}
@@ -288,6 +325,12 @@ const styles = StyleSheet.create({
     fontSize: 11, fontWeight: '700', color: AppColors.primary,
     backgroundColor: AppColors.primaryLight,
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
+  },
+  kickButton: {
+    paddingHorizontal: 8, paddingVertical: 4,
+  },
+  kickButtonText: {
+    fontSize: 12, fontWeight: '600', color: AppColors.error,
   },
 
   // 팀 나가기
