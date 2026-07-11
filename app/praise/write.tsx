@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -42,6 +42,8 @@ export default function PraiseWriteScreen() {
   const [categories, setCategories] = useState<PraiseCategory[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const scrollRef = useRef<ScrollView>(null);
 
   // 활성 스프린트 + 내 마니또 대상 로드
   useEffect(() => {
@@ -125,6 +127,7 @@ export default function PraiseWriteScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -181,6 +184,9 @@ export default function PraiseWriteScreen() {
             placeholderTextColor={AppColors.textSecondary}
             value={content}
             onChangeText={setContent}
+            onFocus={() => {
+              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
+            }}
             multiline
             maxLength={MAX_LEN}
             textAlignVertical="top"
