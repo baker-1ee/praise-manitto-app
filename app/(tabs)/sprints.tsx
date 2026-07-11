@@ -88,7 +88,7 @@ export default function SprintsScreen() {
 
       const doReveal = async () => {
         try {
-          await revealSprint(activeSprint.id, user?.uid);
+          await revealSprint(activeSprint.id);
           router.push(`/reveal/${activeSprint.id}`);
         } catch {
           setAlert({ title: '오류', message: '공개 처리 중 오류가 발생했습니다.', type: 'error' });

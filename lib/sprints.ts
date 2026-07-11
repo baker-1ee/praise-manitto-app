@@ -123,8 +123,7 @@ export async function createSprint(params: {
 
   // 알림 발송 실패가 스프린트 생성 자체를 실패시키면 안 되므로 베스트 에포트로 처리
   try {
-    const recipientIds = memberIds.filter((id) => id !== createdBy);
-    const profiles = await getUserProfilesByIds(recipientIds);
+    const profiles = await getUserProfilesByIds(memberIds);
     await sendPushNotifications(
       profiles,
       '🐳 스프린트가 시작됐어요 🚀',
@@ -260,15 +259,13 @@ export async function deleteSprint(sprintId: string): Promise<void> {
 }
 
 /** 스프린트 공개 (status → REVEALED) */
-export async function revealSprint(sprintId: string, excludeUserId?: string): Promise<void> {
+export async function revealSprint(sprintId: string): Promise<void> {
   await updateDoc(doc(db, 'sprints', sprintId), { status: 'REVEALED' });
 
   // 알림 발송 실패가 공개 처리 자체를 실패시키면 안 되므로 베스트 에포트로 처리
   try {
     const participants = await getSprintParticipants(sprintId);
-    const recipientIds = participants
-      .map((p) => p.userId)
-      .filter((id) => id !== excludeUserId);
+    const recipientIds = participants.map((p) => p.userId);
     const profiles = await getUserProfilesByIds(recipientIds);
     await sendPushNotifications(
       profiles,
