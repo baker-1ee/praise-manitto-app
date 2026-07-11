@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -25,6 +25,11 @@ export default function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollToFocused = () => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
+  };
 
   // 프로필 로드 시 초기값 세팅
   useEffect(() => {
@@ -81,6 +86,7 @@ export default function ProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -100,6 +106,7 @@ export default function ProfileScreen() {
               label="이름"
               value={name}
               onChangeText={setName}
+              onFocus={scrollToFocused}
               placeholder="이름을 입력하세요"
               maxLength={20}
             />
@@ -108,6 +115,7 @@ export default function ProfileScreen() {
                 label="한줄 소개"
                 value={bio}
                 onChangeText={setBio}
+                onFocus={scrollToFocused}
                 placeholder="나를 한 줄로 소개해보세요 (선택)"
                 maxLength={50}
               />
