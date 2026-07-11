@@ -2,6 +2,7 @@ import { Text } from '@/components/ui/text';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
 TextInput,
@@ -119,6 +120,10 @@ export default function PraiseWriteScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <Stack.Screen options={{ title: '칭찬 쓰기', headerShown: true, headerTintColor: AppColors.primary, headerShadowVisible: false, headerStyle: { backgroundColor: '#fafafc' } }} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -194,12 +199,14 @@ export default function PraiseWriteScreen() {
           disabled={content.trim().length < MIN_LEN || content.length > MAX_LEN}
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fafafc' },
+  flex: { flex: 1 },
   scroll: { padding: 20, gap: 24, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyEmoji: { fontSize: 48 },

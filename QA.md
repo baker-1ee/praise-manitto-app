@@ -1,6 +1,6 @@
 # QA 이슈 트래커 — 칭찬 마니또 앱
 
-> 최초 작성: 2026-06-25 / 최종 업데이트: 2026-06-25  
+> 최초 작성: 2026-06-25 / 최종 업데이트: 2026-07-11  
 > 이슈를 발견할 때마다 이 문서에 기록하고 상태를 업데이트한다.
 
 ---
@@ -26,7 +26,7 @@
 
 ---
 
-### BUG-003 ✅ 해결됨 (코드 레벨)
+### BUG-003 ✅ 해결됨
 **제목**: 스프린트 공개 후 로그아웃되고 다시 로그인이 안 됨  
 **증상**:
 1. "스프린트 공개하기" 버튼 → "공개하기 🎉" 누르면 앱이 로그아웃됨
@@ -38,7 +38,46 @@
 - `getRevealData` `.catch()` 추가
 - `subscribeToUserProfile` / `subscribeToMyMemberships` error handler 추가
 
-> Firestore 보안 규칙은 현재 전체 개방(~2026-07-24) 상태라 규칙 문제 아님. 기술 노트 참조.
+> 실사용 검증 완료 (2026-07-11).
+
+---
+
+### BUG-006 ✅ 해결됨
+**제목**: 구글 로그인 실패 (Play 앱 서명 키 SHA-1 미등록)  
+**증상**: Play 스토어 배포 빌드에서 구글 로그인 시도 시 실패  
+**원인**: Play 앱 서명(App Signing Key)이 적용되면서 실제 배포 빌드의 서명 SHA-1 지문이 Firebase/Google Cloud OAuth 클라이언트에 등록된 지문과 불일치  
+**수정**: Play 앱 서명 키 SHA-1 지문 등록(`6d1e28d`) 후 누락된 지문 추가 등록(`338ee70`). 실기기 배포 빌드로 재검증 완료
+
+---
+
+### BUG-007 ✅ 해결됨
+**제목**: 로그인 후 (onboarding) 라우트 네비게이션 오류  
+**증상**: 로그인 직후 온보딩 라우트로 진입 시 라우트 미등록/네비게이션 오류 발생  
+**원인**: `(onboarding)` Stack이 조건부로만 마운트되어 네비게이션 시점에 라우트가 아직 등록되지 않음  
+**수정**: `(onboarding)` Stack을 항상 렌더링하도록 변경 (`c9d8616`, `6b82c5b`, `3122eda`)
+
+---
+
+### BUG-008 ✅ 해결됨
+**제목**: 스프린트 삭제·생성 시 permission-denied  
+**증상**: 스프린트 삭제 또는 생성 시 Firestore permission-denied 오류 발생  
+**수정**: 관련 Firestore 보안 규칙 조건 수정 (`3d41cda`)
+
+---
+
+### BUG-009 ✅ 해결됨
+**제목**: Firestore 복합 인덱스 오류  
+**증상**: 특정 쿼리 실행 시 복합 인덱스 미존재로 인한 오류 발생  
+**수정**: 복합 인덱스가 필요 없도록 단일 필드 쿼리로 전면 교체 (`90b21f1`)
+
+---
+
+### BUG-010 ✅ 해결됨 (FB-001에서 승격)
+**제목**: 칭찬 작성 화면 — 키보드가 입력 중인 텍스트를 가림  
+**증상**: 칭찬 작성 시 자판(키보드)이 화면을 덮어 지금 작성 중인 텍스트가 실시간으로 보이지 않음  
+**원인**: `app/praise/write.tsx`에 `KeyboardAvoidingView`가 없어 키보드가 올라오면 `ScrollView`가 밀리지 않고 하단 `TextInput`/버튼을 그대로 가림  
+**수정**: 로그인/회원가입/온보딩 화면과 동일한 패턴으로 `KeyboardAvoidingView`(`behavior: iOS는 'padding', Android는 'height'`)로 `ScrollView`를 감쌈  
+**제보일**: 2026-07-10
 
 ---
 
@@ -111,13 +150,6 @@
 
 > 비공개 테스트 중 테스터가 제보한 의견을 기록. 검토 후 버그/기능요청으로 승격하거나 대응 방침 결정.
 
-### FB-001 🔍 검토 필요
-**제목**: 칭찬 작성 화면 — 키보드가 입력 중인 텍스트를 가림  
-**증상**: 칭찬 작성 시 자판(키보드)이 화면을 덮어 지금 작성 중인 텍스트가 실시간으로 보이지 않음  
-**제보일**: 2026-07-10
-
----
-
 ### FB-002 🔍 검토 필요
 **제목**: 작성한 칭찬 오타 수정 방법 부재  
 **증상**: 칭찬 작성 후 오타를 발견했을 때 수정할 수 있는 방법을 찾지 못함 (수정 기능 부재로 추정)  
@@ -154,24 +186,6 @@
 
 ## 기술 노트 (Technical Notes)
 
-### Firestore 보안 규칙 현황 (2026-06-25 확인)
+### Firestore 보안 규칙 현황 (2026-07-11 확인) ✅ 정식 규칙 배포 완료
 
-현재 배포된 규칙:
-```javascript
-match /praises/{praiseId} {
-  allow read: if request.auth != null && (
-    resource.data.fromUserId == request.auth.uid ||
-    resource.data.toUserId == request.auth.uid ||
-    get(...sprints/.../status).data.status in ['REVEALED', 'CLOSED']
-  );
-  allow create: if request.auth != null && ...;
-}
-
-// 전체 개방 (30일 무료 체험 규칙)
-match /{document=**} {
-  allow read, write: if request.time < timestamp.date(2026, 7, 24);
-}
-```
-
-**⚠️ 2026-07-24 이전에 정식 보안 규칙 배포 필요**  
-만료 이후 `praises`를 제외한 모든 컬렉션(users, teams, memberships, sprints 등)에 대한 접근이 전면 차단됨.
+전체 개방(임시 체험) 규칙 제거, 리소스별(users/teams/memberships/sprints/pairs/praises/nudgeLogs) 세부 권한으로 정식 배포 완료 (`firestore.rules` 참조). 만료 관련 이슈 해소.
