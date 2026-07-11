@@ -1,16 +1,22 @@
 import {
   addDoc,
   collection,
+  doc,
   getCountFromServer,
+  getDoc,
   getDocs,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   Timestamp,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+
+/** 칭찬 작성 후 수정 가능한 시간(ms) — Firestore 보안 규칙과 동일하게 유지 */
+export const PRAISE_EDIT_WINDOW_MS = 10 * 60 * 1000;
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +52,27 @@ export async function writePraise(params: {
     ...params,
     createdAt: serverTimestamp(),
   });
+}
+
+/** 작성 후 10분 이내인지 확인 (수정 가능 여부) */
+export function isPraiseEditable(praise: Pick<Praise, 'createdAt'>, now = Date.now()): boolean {
+  if (!praise.createdAt) return false;
+  return now - praise.createdAt.toDate().getTime() < PRAISE_EDIT_WINDOW_MS;
+}
+
+/** 칭찬 단건 조회 */
+export async function getPraiseById(praiseId: string): Promise<Praise | null> {
+  const snap = await getDoc(doc(db, 'praises', praiseId));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...(snap.data() as Omit<Praise, 'id'>) };
+}
+
+/** 칭찬 수정 — 작성 후 10분 이내, 본인 작성 건만 (Firestore 보안 규칙에서 최종 검증) */
+export async function updatePraise(
+  praiseId: string,
+  params: { content: string; categories: PraiseCategory[] },
+): Promise<void> {
+  await updateDoc(doc(db, 'praises', praiseId), params);
 }
 
 /** 내가 보낸 칭찬 실시간 구독 — 복합 인덱스: sprintId + fromUserId + createdAt desc */

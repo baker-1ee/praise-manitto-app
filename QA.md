@@ -146,6 +146,17 @@
 
 ---
 
+### FEAT-006 ✅ 해결됨
+**제목**: 보낸 칭찬 — 작성 후 10분 이내 수정 가능 (삭제는 미지원)  
+**요청 내용**: 칭찬 탭 "보낸 칭찬"에서 작성 후 10분 이내라면 내용/카테고리를 수정할 수 있어야 함  
+**수정**:
+- `lib/praises.ts`: `PRAISE_EDIT_WINDOW_MS`(10분), `isPraiseEditable`, `getPraiseById`, `updatePraise` 추가
+- `app/praise/edit/[praiseId].tsx` 신규 생성 — `write.tsx`와 동일한 UI로 내용/카테고리만 수정, 수신자는 표시만 하고 변경 불가
+- `app/(tabs)/praises.tsx`: 보낸 칭찬 카드에 10분 이내일 때만 "수정하기" 버튼 노출 (30초 주기로 만료 여부 재확인)
+- `firestore.rules`: `praises` `allow update`를 작성자 본인 + 작성 후 10분 이내 + `content`/`categories` 필드만 변경 가능하도록 서버 측에서도 강제
+
+---
+
 ## 베타 테스터 피드백 (Tester Feedback)
 
 > 비공개 테스트 중 테스터가 제보한 의견을 기록. 검토 후 버그/기능요청으로 승격하거나 대응 방침 결정.

@@ -8,12 +8,12 @@ import {
 TouchableOpacity,
   View,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTeam } from '@/contexts/team-context';
 import { useSprint } from '@/contexts/sprint-context';
-import { Praise } from '@/lib/praises';
+import { isPraiseEditable, Praise } from '@/lib/praises';
 import { AppColors } from '@/constants/theme';
 import { PraiseCardSkeleton } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/avatar';
@@ -27,8 +27,15 @@ export default function PraisesScreen() {
 
   const [activeTab, setActiveTab] = useState<Tab>('sent');
   const [showTeamPicker, setShowTeamPicker] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const loading = activeSprint === undefined;
+
+  // 보낸 칭찬 수정 가능 시간(10분) 만료를 반영하기 위한 주기적 갱신
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   // tabParam 변경 시 탭 전환
   useEffect(() => {
@@ -96,6 +103,7 @@ export default function PraisesScreen() {
               praise={praise}
               tab={activeTab}
               isRevealed={isRevealed}
+              now={now}
             />
           ))}
         </ScrollView>
@@ -126,15 +134,17 @@ export default function PraisesScreen() {
   );
 }
 
-function PraiseCard({ praise, tab, isRevealed }: {
+function PraiseCard({ praise, tab, isRevealed, now }: {
   praise: Praise;
   tab: Tab;
   isRevealed: boolean;
+  now: number;
 }) {
   const date = praise.createdAt?.toDate();
   const dateStr = date
     ? `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
     : '';
+  const editable = tab === 'sent' && isPraiseEditable(praise, now);
 
   return (
     <View style={styles.card}>
@@ -162,6 +172,16 @@ function PraiseCard({ praise, tab, isRevealed }: {
         </View>
         <Text style={styles.cardDate}>{dateStr}</Text>
       </View>
+
+      {/* 수정 (보낸 칭찬, 작성 후 10분 이내만) */}
+      {editable && (
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => router.push(`/praise/edit/${praise.id}`)}
+        >
+          <Text style={styles.editButtonText}>수정하기</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -226,6 +246,13 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 11, fontWeight: '600', color: AppColors.primary },
   cardDate: { fontSize: 11, color: AppColors.textSecondary },
+  editButton: {
+    alignSelf: 'flex-end',
+    marginTop: 2,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1, borderColor: AppColors.primary,
+  },
+  editButtonText: { fontSize: 12, fontWeight: '600', color: AppColors.primary },
 
   // 팀 선택 모달
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
