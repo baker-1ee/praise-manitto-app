@@ -2,6 +2,7 @@
   "expo": {
     "name": "칭찬 마니또",
     "slug": "praise-manitto-app",
+    "owner": "studiojinung",
     "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/whale-icon.png",
@@ -66,7 +67,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "255e125e-187d-4026-ad1e-b1b325f74ae2"
+        "projectId": "d6712af0-544a-4bb5-a4bc-3a992d11a563"
       }
     }
   }

@@ -57,11 +57,15 @@ export async function sendPushNotifications(
   try {
     for (let i = 0; i < validTokens.length; i += EXPO_PUSH_CHUNK_SIZE) {
       const chunk = validTokens.slice(i, i + EXPO_PUSH_CHUNK_SIZE);
-      await fetch(EXPO_PUSH_ENDPOINT, {
+      const res = await fetch(EXPO_PUSH_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(chunk.map((to) => ({ to, title, body, sound: 'default' }))),
       });
+      // Expo 푸시 API는 요청 자체가 잘못돼도 HTTP 200을 줄 수 있고,
+      // 개별 발송 실패는 응답 body의 티켓 배열에만 담겨오므로 반드시 확인해야 함
+      const json = await res.json();
+      console.log('Expo 푸시 발송 응답', JSON.stringify(json));
     }
   } catch (e) {
     console.warn('푸시 알림 발송 실패', e);
