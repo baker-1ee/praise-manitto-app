@@ -24,7 +24,7 @@ import { hasNudgedToday, recordNudge } from '@/lib/praises';
 export default function HomeScreen() {
   const { profile, user } = useAuth();
   const { myTeams, selectedTeam, selectedTeamId, setSelectedTeam } = useTeam();
-  const { activeSprint, myPair, targetProfile, lastRevealedSprint, sentPraises, receivedPraises } = useSprint();
+  const { activeSprint, targetProfile, myManitoId, lastRevealedSprint, sentPraises, receivedPraises } = useSprint();
 
   const [nudging, setNudging] = useState(false);
   const [showTeamPicker, setShowTeamPicker] = useState(false);
@@ -33,7 +33,7 @@ export default function HomeScreen() {
   const stats = { sent: sentPraises.length, received: receivedPraises.length };
 
   const handleNudge = async () => {
-    if (!activeSprint || !user || !myPair) return;
+    if (!activeSprint || !user || !myManitoId) return;
     const alreadyNudged = await hasNudgedToday(activeSprint.id, user.uid);
     if (alreadyNudged) {
       setAlert({ title: '오늘 이미 조른 적 있어요', message: '내일 다시 시도해주세요.' });
@@ -41,7 +41,7 @@ export default function HomeScreen() {
     }
     setNudging(true);
     try {
-      await recordNudge({ sprintId: activeSprint.id, requesterId: user.uid, toUserId: myPair.targetId });
+      await recordNudge({ sprintId: activeSprint.id, requesterId: user.uid, toUserId: myManitoId });
       setAlert({ title: '조르기 완료!', message: '마니또에게 칭찬을 기다리고 있다고 전달했어요.', type: 'success' });
     } catch {
       setAlert({ title: '오류', message: '조르기에 실패했습니다.', type: 'error' });

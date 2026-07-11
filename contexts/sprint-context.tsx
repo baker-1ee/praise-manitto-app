@@ -6,6 +6,7 @@ import {
   getPastSprintsPaged,
   getLastRevealedSprint,
   getMyPair,
+  getMyManitoPair,
   ManitoPair,
   Sprint,
   subscribeToActiveSprint,
@@ -17,6 +18,7 @@ interface SprintContextValue {
   activeSprint: Sprint | null | undefined; // undefined = 로딩 중
   myPair: ManitoPair | null;
   targetProfile: UserProfile | null;
+  myManitoId: string | null; // 나를 칭찬해야 할 사람 (조르기 대상)
   lastRevealedSprint: Sprint | null;
   sentPraises: Praise[];
   receivedPraises: Praise[];
@@ -30,6 +32,7 @@ const SprintContext = createContext<SprintContextValue>({
   activeSprint: undefined,
   myPair: null,
   targetProfile: null,
+  myManitoId: null,
   lastRevealedSprint: null,
   sentPraises: [],
   receivedPraises: [],
@@ -46,6 +49,7 @@ export function SprintProvider({ children }: { children: React.ReactNode }) {
   const [activeSprint, setActiveSprint] = useState<Sprint | null | undefined>(undefined);
   const [myPair, setMyPair] = useState<ManitoPair | null>(null);
   const [targetProfile, setTargetProfile] = useState<UserProfile | null>(null);
+  const [myManitoId, setMyManitoId] = useState<string | null>(null);
   const [lastRevealedSprint, setLastRevealedSprint] = useState<Sprint | null>(null);
   const [sentPraises, setSentPraises] = useState<Praise[]>([]);
   const [receivedPraises, setReceivedPraises] = useState<Praise[]>([]);
@@ -61,6 +65,7 @@ export function SprintProvider({ children }: { children: React.ReactNode }) {
     setActiveSprint(undefined);
     setMyPair(null);
     setTargetProfile(null);
+    setMyManitoId(null);
     setLastRevealedSprint(null);
     return subscribeToActiveSprint(selectedTeamId, setActiveSprint);
   }, [selectedTeamId]);
@@ -82,6 +87,7 @@ export function SprintProvider({ children }: { children: React.ReactNode }) {
     if (!activeSprint || activeSprint.status !== 'ACTIVE') {
       setMyPair(null);
       setTargetProfile(null);
+      setMyManitoId(null);
       return;
     }
     getMyPair(activeSprint.id, user.uid).then((pair) => {
@@ -91,6 +97,9 @@ export function SprintProvider({ children }: { children: React.ReactNode }) {
       } else {
         setTargetProfile(null);
       }
+    });
+    getMyManitoPair(activeSprint.id, user.uid).then((pair) => {
+      setMyManitoId(pair?.manitoId ?? null);
     });
   }, [activeSprint?.id, user?.uid]);
 
@@ -150,7 +159,7 @@ export function SprintProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SprintContext.Provider value={{
-      activeSprint, myPair, targetProfile, lastRevealedSprint,
+      activeSprint, myPair, targetProfile, myManitoId, lastRevealedSprint,
       sentPraises, receivedPraises,
       pastSprints, loadingPast, hasMore, loadMore,
     }}>

@@ -6,6 +6,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+Switch,
 TouchableOpacity,
   View,
 } from 'react-native';
@@ -17,14 +18,45 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AppColors } from '@/constants/theme';
 import { AlertModal } from '@/components/ui/alert-modal';
+import { registerForPushNotifications } from '@/lib/notifications';
+import { savePushToken, setPushEnabled } from '@/lib/users';
 
 export default function ProfileScreen() {
-  const { profile, updateProfile, signOut } = useAuth();
+  const { user, profile, updateProfile, signOut } = useAuth();
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [togglingPush, setTogglingPush] = useState(false);
   const [alert, setAlert] = useState<{ title: string; message?: string; type?: 'default' | 'error' | 'success'; buttons?: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> } | null>(null);
+
+  const pushEnabled = profile?.pushEnabled !== false && !!profile?.pushToken;
+
+  const handleTogglePush = async (value: boolean) => {
+    if (!user) return;
+    setTogglingPush(true);
+    try {
+      if (value && !profile?.pushToken) {
+        // 토큰이 아직 없을 때(최초 등록)만 권한 요청 — 이미 있으면 재사용
+        const token = await registerForPushNotifications();
+        if (token) {
+          await savePushToken(user.uid, token);
+        } else {
+          setAlert({
+            title: '알림 권한이 필요해요',
+            message: '기기 설정에서 알림 권한을 허용해주세요.',
+            type: 'error',
+          });
+        }
+      } else {
+        await setPushEnabled(user.uid, value);
+      }
+    } catch {
+      setAlert({ title: '오류', message: '설정 변경에 실패했습니다. 다시 시도해주세요.', type: 'error' });
+    } finally {
+      setTogglingPush(false);
+    }
+  };
 
   const scrollRef = useRef<ScrollView>(null);
   const scrollToFocused = () => {
@@ -137,6 +169,23 @@ export default function ProfileScreen() {
           {/* 구분선 */}
           <View style={styles.divider} />
 
+          {/* 알림 설정 */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingLabelGroup}>
+              <Text style={styles.settingLabel}>푸시 알림</Text>
+              <Text style={styles.settingSub}>칭찬 수신, 스프린트 시작/공개 시 알림을 받아요</Text>
+            </View>
+            <Switch
+              value={pushEnabled}
+              onValueChange={handleTogglePush}
+              disabled={togglingPush}
+              trackColor={{ true: AppColors.primary }}
+            />
+          </View>
+
+          {/* 구분선 */}
+          <View style={styles.divider} />
+
           {/* 로그아웃 */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutText}>로그아웃</Text>
@@ -206,6 +255,25 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: AppColors.border,
     marginVertical: 28,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  settingLabelGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  settingLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: AppColors.textPrimary,
+  },
+  settingSub: {
+    fontSize: 12,
+    color: AppColors.textMuted,
   },
   logoutButton: {
     height: 50,

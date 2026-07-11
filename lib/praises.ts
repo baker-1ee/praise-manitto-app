@@ -59,7 +59,7 @@ export async function writePraise(params: {
   try {
     const toProfile = await getUserProfile(params.toUserId);
     await sendPushNotifications(
-      [toProfile?.pushToken],
+      [toProfile],
       '🐳 마니또의 칭찬이 도착했어요 💌',
       '지금 확인해보세요!',
     );
@@ -171,4 +171,16 @@ export async function recordNudge(params: {
     ...params,
     createdAt: serverTimestamp(),
   });
+
+  // 알림 발송 실패가 조르기 자체를 실패시키면 안 되므로 베스트 에포트로 처리
+  try {
+    const toProfile = await getUserProfile(params.toUserId);
+    await sendPushNotifications(
+      [toProfile],
+      '🐳 마니띠가 칭찬을 기다리고 있어요',
+      '지금 마니띠에게 칭찬을 써주세요!',
+    );
+  } catch (e) {
+    console.warn('조르기 알림 발송 실패', e);
+  }
 }

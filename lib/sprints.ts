@@ -126,7 +126,7 @@ export async function createSprint(params: {
     const recipientIds = memberIds.filter((id) => id !== createdBy);
     const profiles = await getUserProfilesByIds(recipientIds);
     await sendPushNotifications(
-      profiles.map((p) => p.pushToken),
+      profiles,
       '🐳 스프린트가 시작됐어요 🚀',
       '나는 누구의 마니또일까요? 확인해보세요!',
     );
@@ -271,7 +271,7 @@ export async function revealSprint(sprintId: string, excludeUserId?: string): Pr
       .filter((id) => id !== excludeUserId);
     const profiles = await getUserProfilesByIds(recipientIds);
     await sendPushNotifications(
-      profiles.map((p) => p.pushToken),
+      profiles,
       '🐳 마니또가 공개됐어요 🎉',
       '내 마니또는 누구였을까요? 지금 확인해보세요!',
     );
@@ -359,7 +359,7 @@ export async function getRevealData(sprintId: string): Promise<RevealData | null
   return result;
 }
 
-/** 내 마니또 배정 조회 (내가 칭찬해야 할 대상) */
+/** 내가 칭찬을 써줘야 할 대상 조회 (나는 이 대상의 마니또) */
 export async function getMyPair(
   sprintId: string,
   userId: string,
@@ -368,6 +368,22 @@ export async function getMyPair(
     query(
       collection(db, 'sprints', sprintId, 'pairs'),
       where('manitoId', '==', userId),
+    ),
+  );
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...(d.data() as Omit<ManitoPair, 'id'>) };
+}
+
+/** 나를 칭찬해야 할 마니또 배정 조회 (조르기 대상) */
+export async function getMyManitoPair(
+  sprintId: string,
+  userId: string,
+): Promise<ManitoPair | null> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'sprints', sprintId, 'pairs'),
+      where('targetId', '==', userId),
     ),
   );
   if (snap.empty) return null;

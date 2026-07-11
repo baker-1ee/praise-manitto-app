@@ -44,13 +44,26 @@ export async function registerForPushNotifications(): Promise<string | null> {
 const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 const EXPO_PUSH_CHUNK_SIZE = 100;
 
-/** Expo 푸시 토큰들로 알림 발송 — 발신자 클라이언트에서 직접 호출 (베스트 에포트, 실패해도 던지지 않음) */
+interface PushRecipient {
+  pushToken?: string | null;
+  pushEnabled?: boolean;
+}
+
+/**
+ * 유저(들)에게 푸시 알림 발송 — 발신자 클라이언트에서 직접 호출 (베스트 에포트, 실패해도 던지지 않음)
+ * pushEnabled === false인 대상은 토큰이 남아있어도 걸러내고, 보낼 대상이 하나도 없으면 API 자체를 호출하지 않음
+ */
 export async function sendPushNotifications(
-  tokens: (string | null | undefined)[],
+  recipients: (PushRecipient | null | undefined)[],
   title: string,
   body: string,
 ): Promise<void> {
-  const validTokens = [...new Set(tokens.filter((t): t is string => !!t))];
+  const validTokens = [...new Set(
+    recipients
+      .filter((r): r is PushRecipient => !!r && r.pushEnabled !== false)
+      .map((r) => r.pushToken)
+      .filter((t): t is string => !!t),
+  )];
   if (validTokens.length === 0) return;
 
   try {

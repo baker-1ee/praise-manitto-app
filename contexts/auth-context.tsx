@@ -67,8 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user?.uid]);
 
   // 로그인 상태가 되면(기존 세션 복원 포함) 푸시 토큰을 등록/갱신
+  // 단, 프로필 로드 전이거나 사용자가 알림을 명시적으로 껐으면(pushEnabled === false) 건드리지 않음
   useEffect(() => {
-    if (!user) return;
+    if (!user || loading || !profile || profile.pushEnabled === false) return;
     (async () => {
       try {
         const token = await registerForPushNotifications();
@@ -77,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('푸시 토큰 등록 실패', e);
       }
     })();
-  }, [user?.uid]);
+  }, [user?.uid, loading, profile?.pushEnabled]);
 
   const signIn = async (email: string, password: string) => {
     try {

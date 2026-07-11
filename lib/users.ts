@@ -21,6 +21,7 @@ export interface UserProfile {
   avatarUrl?: string;
   bio?: string;
   pushToken?: string;
+  pushEnabled?: boolean; // false면 알림 끔(사용자가 명시적으로 껐음). 미설정(undefined)은 켜짐으로 취급
   createdAt: Timestamp | null;
 }
 
@@ -63,7 +64,12 @@ export async function getUserProfilesByIds(uids: string[]): Promise<UserProfile[
 
 /** 푸시 토큰 저장 — 로그인/앱 실행 시마다 최신 토큰으로 갱신 */
 export async function savePushToken(uid: string, token: string): Promise<void> {
-  await updateDoc(doc(db, 'users', uid), { pushToken: token });
+  await updateDoc(doc(db, 'users', uid), { pushToken: token, pushEnabled: true });
+}
+
+/** 푸시 알림 켜기/끄기 — 토큰은 그대로 두고 플래그만 변경 (다시 켤 때 재등록 불필요, 발송 시 이 플래그로 필터링) */
+export async function setPushEnabled(uid: string, enabled: boolean): Promise<void> {
+  await updateDoc(doc(db, 'users', uid), { pushEnabled: enabled });
 }
 
 export async function updateUserProfile(
