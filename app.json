@@ -3,7 +3,7 @@
     "name": "칭찬 마니또",
     "slug": "praise-manitto-app",
     "owner": "studiojinung",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "orientation": "portrait",
     "icon": "./assets/images/whale-icon.png",
     "scheme": "praisemanittoapp",
@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.jinung.praise.manitto",
-      "versionCode": 11,
+      "versionCode": 12,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#7c3aed",
