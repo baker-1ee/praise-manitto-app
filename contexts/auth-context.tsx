@@ -27,6 +27,7 @@ import {
   deleteTeam,
   findNextLeaderCandidate,
   getMembershipsByUserId,
+  getTeam,
   leaveMembership,
   transferLeadership,
 } from '@/lib/teams';
@@ -195,15 +196,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const memberships = await getMembershipsByUserId(user.uid);
       for (const m of memberships) {
-        if (m.role === 'LEADER') {
-          const candidate = await findNextLeaderCandidate(m.teamId, user.uid);
-          if (!candidate) {
-            await deleteTeam(m.teamId);
-            continue;
+        try {
+          // 실제 권한은 멤버십의 role이 아니라 teams.createdBy로 판정되므로(둘이 어긋난
+          // 잔여 데이터가 있으면 role만 보고 위임/삭제를 시도하다 권한 오류로 전체가
+          // 중단될 수 있음) 여기서도 team.createdBy를 기준으로 리더 여부를 확인
+          const team = await getTeam(m.teamId);
+          const isActualLeader = team?.createdBy === user.uid;
+          if (isActualLeader) {
+            const candidate = await findNextLeaderCandidate(m.teamId, user.uid);
+            if (!candidate) {
+              await deleteTeam(m.teamId);
+              continue;
+            }
+            await transferLeadership(m.teamId, m.id, candidate.membershipId, candidate.userId);
           }
-          await transferLeadership(m.teamId, m.id, candidate.membershipId, candidate.userId);
+          await leaveMembership(m.id);
+        } catch (e) {
+          // 한 팀 정리에 실패해도 나머지 팀 정리와 최종 계정 삭제는 계속 진행 (베스트 에포트)
+          console.warn(`팀(${m.teamId}) 탈퇴 정리 실패`, e);
         }
-        await leaveMembership(m.id);
       }
 
       await anonymizeUserProfile(user.uid);
