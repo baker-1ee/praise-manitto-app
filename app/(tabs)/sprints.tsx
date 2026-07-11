@@ -85,6 +85,16 @@ export default function SprintsScreen() {
     setRevealing(true);
     try {
       const { canReveal, unpraised } = await checkRevealEligibility(activeSprint.id);
+
+      const doReveal = async () => {
+        try {
+          await revealSprint(activeSprint.id, user?.uid);
+          router.push(`/reveal/${activeSprint.id}`);
+        } catch {
+          setAlert({ title: '오류', message: '공개 처리 중 오류가 발생했습니다.', type: 'error' });
+        }
+      };
+
       if (!canReveal) {
         const names = await Promise.all(
           unpraised.map(async (uid) => {
@@ -93,29 +103,23 @@ export default function SprintsScreen() {
           }),
         );
         setAlert({
-          title: '공개 불가 🚫',
-          message: `아직 칭찬을 작성하지 않은 팀원이 있어요.\n\n${names.join(', ')}\n\n모두 칭찬을 작성해야 공개할 수 있습니다.`,
+          title: '아직 칭찬을 안 쓴 팀원이 있어요 🚫',
+          message: `${names.join(', ')}\n\n모두 칭찬을 작성하지 않았어요. 그래도 공개할까요?`,
           type: 'error',
+          buttons: [
+            { text: '취소', style: 'cancel' },
+            { text: '그래도 공개하기 🎉', style: 'destructive', onPress: doReveal },
+          ],
         });
         return;
       }
+
       setAlert({
         title: '마니또 공개',
         message: '스프린트를 공개하면 모든 마니또 관계가 공개됩니다. 계속할까요?',
         buttons: [
           { text: '취소', style: 'cancel' },
-          {
-            text: '공개하기 🎉',
-            style: 'default',
-            onPress: async () => {
-              try {
-                await revealSprint(activeSprint.id, user?.uid);
-                router.push(`/reveal/${activeSprint.id}`);
-              } catch {
-                setAlert({ title: '오류', message: '공개 처리 중 오류가 발생했습니다.', type: 'error' });
-              }
-            },
-          },
+          { text: '공개하기 🎉', style: 'default', onPress: doReveal },
         ],
       });
     } catch {
