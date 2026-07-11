@@ -1,5 +1,5 @@
 import { Text } from '@/components/ui/text';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
 Switch,
-TextInput,
 TouchableOpacity,
   View,
 } from 'react-native';
@@ -57,26 +56,6 @@ export default function ProfileScreen() {
     } finally {
       setTogglingPush(false);
     }
-  };
-
-  const scrollRef = useRef<ScrollView>(null);
-  const contentRef = useRef<View>(null);
-  const nameInputRef = useRef<TextInput>(null);
-  const bioInputRef = useRef<TextInput>(null);
-
-  // 포커스된 입력창을 화면 끝이 아니라 그 위치로 정확히 스크롤 (필드가 화면 위쪽에 있을 때
-  // scrollToEnd를 쓰면 오히려 화면 밖으로 스크롤돼 사라지는 문제가 있어 위치 기반으로 계산)
-  const scrollToInput = (inputRef: React.RefObject<TextInput | null>) => {
-    setTimeout(() => {
-      if (!inputRef.current || !contentRef.current) return;
-      inputRef.current.measureLayout(
-        contentRef.current,
-        (_x, y) => {
-          scrollRef.current?.scrollTo({ y: Math.max(y - 16, 0), animated: true });
-        },
-        () => {},
-      );
-    }, 150);
   };
 
   // 프로필 로드 시 초기값 세팅
@@ -134,79 +113,72 @@ export default function ProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          ref={scrollRef}
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View ref={contentRef}>
-            {/* 헤더 */}
-            <Text style={styles.pageTitle}>프로필</Text>
+          {/* 헤더 */}
+          <Text style={styles.pageTitle}>프로필</Text>
 
-            {/* 아바타 */}
-            <View style={styles.avatarSection}>
-              <Avatar name={name || profile.name} size={80} />
-              <Text style={styles.emailText}>{profile.email}</Text>
-            </View>
-
-            {/* 폼 */}
-            <View style={styles.form}>
-              <Input
-                ref={nameInputRef}
-                label="이름"
-                value={name}
-                onChangeText={setName}
-                onFocus={() => scrollToInput(nameInputRef)}
-                placeholder="이름을 입력하세요"
-                maxLength={20}
-              />
-              <View>
-                <Input
-                  ref={bioInputRef}
-                  label="한줄 소개"
-                  value={bio}
-                  onChangeText={setBio}
-                  onFocus={() => scrollToInput(bioInputRef)}
-                  placeholder="나를 한 줄로 소개해보세요 (선택)"
-                  maxLength={50}
-                />
-                <Text style={styles.charCount}>{bio.length}/50</Text>
-              </View>
-
-              {success && (
-                <Text style={styles.successText}>✓ 저장되었습니다</Text>
-              )}
-
-              <Button
-                title="저장"
-                onPress={handleSave}
-                loading={saving}
-                disabled={!isDirty || !name.trim()}
-              />
-            </View>
-
-            {/* 구분선 */}
-            <View style={styles.divider} />
-
-            {/* 알림 설정 */}
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>푸시 알림</Text>
-              <Switch
-                value={pushEnabled}
-                onValueChange={handleTogglePush}
-                disabled={togglingPush}
-                trackColor={{ true: AppColors.primary }}
-              />
-            </View>
-
-            {/* 구분선 */}
-            <View style={styles.dividerTight} />
-
-            {/* 로그아웃 */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutText}>로그아웃</Text>
-            </TouchableOpacity>
+          {/* 아바타 */}
+          <View style={styles.avatarSection}>
+            <Avatar name={name || profile.name} size={80} />
+            <Text style={styles.emailText}>{profile.email}</Text>
           </View>
+
+          {/* 폼 */}
+          <View style={styles.form}>
+            <Input
+              label="이름"
+              value={name}
+              onChangeText={setName}
+              placeholder="이름을 입력하세요"
+              maxLength={20}
+            />
+            <View>
+              <Input
+                label="한줄 소개"
+                value={bio}
+                onChangeText={setBio}
+                placeholder="나를 한 줄로 소개해보세요 (선택)"
+                maxLength={50}
+              />
+              <Text style={styles.charCount}>{bio.length}/50</Text>
+            </View>
+
+            {success && (
+              <Text style={styles.successText}>✓ 저장되었습니다</Text>
+            )}
+
+            <Button
+              title="저장"
+              onPress={handleSave}
+              loading={saving}
+              disabled={!isDirty || !name.trim()}
+            />
+          </View>
+
+          {/* 구분선 */}
+          <View style={styles.divider} />
+
+          {/* 알림 설정 */}
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>푸시 알림</Text>
+            <Switch
+              value={pushEnabled}
+              onValueChange={handleTogglePush}
+              disabled={togglingPush}
+              trackColor={{ true: AppColors.primary }}
+            />
+          </View>
+
+          {/* 구분선 */}
+          <View style={styles.dividerTight} />
+
+          {/* 로그아웃 */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>로그아웃</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
       <AlertModal

@@ -2,6 +2,7 @@ import { Text } from '@/components/ui/text';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
@@ -44,6 +45,31 @@ export default function PraiseWriteScreen() {
   const [error, setError] = useState('');
 
   const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
+  const textareaRef = useRef<TextInput>(null);
+
+  const scrollToTextarea = () => {
+    if (!textareaRef.current || !contentRef.current) return;
+    textareaRef.current.measureLayout(
+      contentRef.current,
+      (_x, y) => {
+        scrollRef.current?.scrollTo({ y: Math.max(y - 16, 0), animated: true });
+      },
+      () => {},
+    );
+  };
+
+  // 키보드가 실제로 나타날 때마다 스크롤 — onFocus만 쓰면, 키보드의 "숨기기" 버튼으로
+  // 닫았다가 같은 입력창을 다시 눌렀을 때 포커스가 그대로 유지돼(blur가 안 남) onFocus가
+  // 다시 발생하지 않아 스크롤이 안 되는 문제가 있어서 keyboardDidShow로 보완함
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      if (textareaRef.current?.isFocused()) {
+        setTimeout(scrollToTextarea, 50);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // 활성 스프린트 + 내 마니또 대상 로드
   useEffect(() => {
@@ -132,6 +158,7 @@ export default function PraiseWriteScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View ref={contentRef} style={styles.content}>
         {/* 수신자 */}
         <View style={styles.toSection}>
           <Text style={styles.toLabel}>받는 사람</Text>
@@ -179,14 +206,13 @@ export default function PraiseWriteScreen() {
             </Text>
           </View>
           <TextInput
+            ref={textareaRef}
             style={styles.textArea}
             placeholder={`${targetProfile.name}님에게 따뜻한 칭찬을 전해보세요 (최소 ${MIN_LEN}자)`}
             placeholderTextColor={AppColors.textSecondary}
             value={content}
             onChangeText={setContent}
-            onFocus={() => {
-              setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
-            }}
+            onFocus={() => setTimeout(scrollToTextarea, 150)}
             multiline
             maxLength={MAX_LEN}
             textAlignVertical="top"
@@ -204,6 +230,7 @@ export default function PraiseWriteScreen() {
           loading={submitting}
           disabled={content.trim().length < MIN_LEN || content.length > MAX_LEN}
         />
+        </View>
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -213,7 +240,8 @@ export default function PraiseWriteScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#fafafc' },
   flex: { flex: 1 },
-  scroll: { padding: 20, gap: 24, paddingBottom: 40 },
+  scroll: { padding: 20, paddingBottom: 40 },
+  content: { gap: 24 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   emptyEmoji: { fontSize: 48 },
   emptyText: { fontSize: 16, fontWeight: '600', color: AppColors.textPrimary },
