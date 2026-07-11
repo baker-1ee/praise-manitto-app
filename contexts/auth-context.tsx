@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   deleteUser,
@@ -58,6 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  // 탈퇴 처리 중 프로필 익명화로 pushEnabled/pushToken 필드가 사라지면
+  // 아래 자동 등록 useEffect가 이를 감지해 되살려버리는 걸 막기 위한 플래그
+  const deletingAccountRef = useRef(false);
 
   // Firebase Auth 상태 구독
   useEffect(() => {
@@ -89,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 로그인 상태가 되면(기존 세션 복원 포함) 푸시 토큰을 등록/갱신
   // 단, 프로필 로드 전이거나 사용자가 알림을 명시적으로 껐으면(pushEnabled === false) 건드리지 않음
   useEffect(() => {
-    if (!user || loading || !profile || profile.pushEnabled === false) return;
+    if (!user || loading || !profile || profile.pushEnabled === false || deletingAccountRef.current) return;
     (async () => {
       try {
         const token = await registerForPushNotifications();
@@ -184,23 +187,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const deleteAccount = async (password?: string) => {
     if (!user) throw new Error('로그인이 필요합니다.');
-    await reauthenticate(password);
+    // 도중에 실패하면(재인증 실패 등) 다시 정상적으로 푸시 토큰을 등록할 수 있어야 하므로
+    // 실패 시 플래그를 되돌림 — 성공 시에는 deleteUser로 로그아웃되면서 자연히 의미 없어짐
+    deletingAccountRef.current = true;
+    try {
+      await reauthenticate(password);
 
-    const memberships = await getMembershipsByUserId(user.uid);
-    for (const m of memberships) {
-      if (m.role === 'LEADER') {
-        const candidate = await findNextLeaderCandidate(m.teamId, user.uid);
-        if (!candidate) {
-          await deleteTeam(m.teamId);
-          continue;
+      const memberships = await getMembershipsByUserId(user.uid);
+      for (const m of memberships) {
+        if (m.role === 'LEADER') {
+          const candidate = await findNextLeaderCandidate(m.teamId, user.uid);
+          if (!candidate) {
+            await deleteTeam(m.teamId);
+            continue;
+          }
+          await transferLeadership(m.teamId, m.id, candidate.membershipId, candidate.userId);
         }
-        await transferLeadership(m.teamId, m.id, candidate.membershipId, candidate.userId);
+        await leaveMembership(m.id);
       }
-      await leaveMembership(m.id);
-    }
 
-    await anonymizeUserProfile(user.uid);
-    await deleteUser(user);
+      await anonymizeUserProfile(user.uid);
+      await deleteUser(user);
+    } catch (e) {
+      deletingAccountRef.current = false;
+      throw e;
+    }
   };
 
   return (
