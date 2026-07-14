@@ -46,17 +46,38 @@ Apple Developer Program 계정은 배우자 명의로 가입/결제됨:
       큐잉됨 (로그: https://expo.dev/accounts/studiojinung/projects/praise-manitto-app/builds/70e98808-1717-45f5-b6b9-45dee036ae60)
 - [x] 빌드 완료 확인 — `expo-build-properties`의 `extraPods` modular header 수정
       이후 `pod install` 통과, 빌드 성공
-- [ ] App Store Connect에 앱 레코드 생성 (번들 ID `com.jinung.praise.manitto`)
-- [ ] `npx eas-cli submit --platform ios` — 최초 실행 시 `ascAppId`/Apple Team ID를
-      물어보고 `eas.json`에 저장 가능. 지금은 이 정보를 몰라서 `eas.json`에
-      미리 채워두지 않음
-- [ ] Sign in with Apple 연동 (별도 작업 — 아직 미착수, Apple 로그인 필수 여부는
-      가이드라인 4.8 때문에 확정됨: 구글 로그인이 있으면 애플 로그인도 있어야 함)
+- [x] App Store Connect에 앱 레코드 생성 (번들 ID `com.jinung.praise.manitto`,
+      이름 "칭찬 마니또", SKU `com.jinung.praise.manitto`)
+- [x] `npx eas-cli submit --platform ios --profile production` — ASC API Key를
+      새로 생성해서 저장(다음부터는 Apple 재로그인 없이 제출 가능), TestFlight
+      업로드 완료 확인함
+- [x] Sign in with Apple 코드 구현 완료 — `expo-apple-authentication` 설치,
+      `app.json`에 플러그인 등록(entitlement 자동 추가), `lib/apple-auth.ts`
+      (nonce 생성/네이티브 로그인), `auth-context.tsx`의 `signInWithApple`/
+      `isAppleAccount`(탈퇴 재인증 포함), `use-apple-sign-in.ts` 훅,
+      login/register 화면에 iOS 전용 Apple 버튼 추가
+  - [x] Firebase 콘솔 → Authentication → Sign-in method에서 Apple 제공업체 활성화 완료
+  - [x] entitlement 반영된 새 빌드 → TestFlight 업로드까지 완료 (본인 계정으로 진행)
+  - [ ] 실기기/TestFlight에서 실제 Apple 로그인 테스트 — 아직 미확인
 - [ ] 개인정보처리방침(`public/privacy-policy.html`)이 실제로 공개 URL로
       호스팅되고 있는지 확인 — App Store Connect 메타데이터에 필요
 - [ ] App Privacy(데이터 수집) 설문 작성 — Firebase Auth/Firestore, Google
       Sign-In이 수집하는 항목 기준으로 정리 필요
 - [ ] 심사용 테스트 계정 준비 (소셜 로그인만 있으면 심사관이 못 들어갈 수 있음)
+
+## 다음 할 일 — 실기기 개발 워크플로우 (내일)
+
+Xcode 없이도 Android(`expo run:android`)처럼 실기기에서 실시간 리로드하며
+개발하는 방법 — TestFlight을 매번 거치지 않아도 됨:
+
+1. `npx eas-cli device:create` — QR/링크를 아이폰에서 열면 UDID 자동 등록
+   (developer.apple.com에서 수동으로 UDID 입력하는 것보다 훨씬 쉬움)
+2. `eas.json`의 `development` 프로필에서 `ios.simulator: true`를 제거/`false`로
+   바꿔서 시뮬레이터용이 아니라 **실기기용 ad-hoc dev-client 빌드**로 변경
+3. `eas build --profile development --platform ios` 한 번 빌드하고, EAS가 주는
+   링크로 TestFlight 없이 아이폰에 바로 설치
+4. 이후로는 `npx expo start --dev-client`만 켜두면 Android처럼 코드 저장할 때마다
+   실시간 리로드됨 — 네이티브 의존성이 바뀌지 않는 한 재빌드 불필요
 
 ## 다음 사람이 할 일 (순서대로)
 

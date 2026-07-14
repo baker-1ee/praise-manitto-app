@@ -23,7 +23,7 @@ import { registerForPushNotifications } from '@/lib/notifications';
 import { savePushToken, setPushEnabled } from '@/lib/users';
 
 export default function ProfileScreen() {
-  const { user, profile, updateProfile, signOut, isGoogleAccount, deleteAccount } = useAuth();
+  const { user, profile, updateProfile, signOut, isGoogleAccount, isAppleAccount, deleteAccount } = useAuth();
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
           text: '탈퇴하기',
           style: 'destructive',
           onPress: () => {
-            if (isGoogleAccount()) {
+            if (isGoogleAccount() || isAppleAccount()) {
               runWithdraw();
             } else {
               setWithdrawError('');

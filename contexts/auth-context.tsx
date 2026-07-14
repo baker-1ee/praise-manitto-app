@@ -4,6 +4,7 @@ import {
   deleteUser,
   EmailAuthProvider,
   GoogleAuthProvider,
+  OAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
   signInWithCredential,
@@ -14,6 +15,7 @@ import {
 import { FirebaseError } from 'firebase/app';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { auth } from '@/lib/firebase';
+import { signInWithAppleNative } from '@/lib/apple-auth';
 import {
   anonymizeUserProfile,
   createUserProfile,
@@ -47,9 +49,15 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signInWithGoogle: (tokens: { idToken?: string; accessToken?: string }) => Promise<void>;
+  signInWithApple: (params: {
+    identityToken: string;
+    rawNonce: string;
+    fullName?: { givenName?: string | null; familyName?: string | null } | null;
+  }) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Pick<UserProfile, 'name' | 'bio'>>) => Promise<void>;
   isGoogleAccount: () => boolean;
+  isAppleAccount: () => boolean;
   deleteAccount: (password?: string) => Promise<void>;
 }
 
@@ -150,6 +158,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithApple = async ({
+    identityToken,
+    rawNonce,
+    fullName,
+  }: {
+    identityToken: string;
+    rawNonce: string;
+    fullName?: { givenName?: string | null; familyName?: string | null } | null;
+  }) => {
+    try {
+      const credential = new OAuthProvider('apple.com').credential({
+        idToken: identityToken,
+        rawNonce,
+      });
+      const { user: firebaseUser } = await signInWithCredential(auth, credential);
+
+      // 최초 애플 로그인이면 Firestore 프로필 생성 — fullName은 Apple이 최초 1회만 내려줌
+      const existing = await getUserProfile(firebaseUser.uid);
+      if (!existing) {
+        const name = [fullName?.familyName, fullName?.givenName].filter(Boolean).join(' ');
+        await createUserProfile(
+          firebaseUser.uid,
+          firebaseUser.email ?? '',
+          name || firebaseUser.displayName || '사용자',
+        );
+      }
+    } catch (e) {
+      const code = e instanceof FirebaseError ? e.code : '';
+      throw new Error(getAuthErrorMessage(code));
+    }
+  };
+
   const signOut = async () => {
     await firebaseSignOut(auth);
   };
@@ -160,8 +200,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const isGoogleAccount = () => user?.providerData[0]?.providerId === 'google.com';
+  const isAppleAccount = () => user?.providerData[0]?.providerId === 'apple.com';
 
-  /** 탈퇴 직전 재인증 — 이메일 계정은 비밀번호, 구글 계정은 구글 재로그인 */
+  /** 탈퇴 직전 재인증 — 이메일 계정은 비밀번호, 구글/애플 계정은 각자 재로그인 */
   const reauthenticate = async (password?: string) => {
     if (!user) throw new Error('로그인이 필요합니다.');
     try {
@@ -171,6 +212,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const idToken = result.data?.idToken;
         if (!idToken) throw new Error('Google 재인증에 실패했습니다.');
         await reauthenticateWithCredential(user, GoogleAuthProvider.credential(idToken));
+      } else if (isAppleAccount()) {
+        const { identityToken, rawNonce } = await signInWithAppleNative();
+        if (!identityToken) throw new Error('Apple 재인증에 실패했습니다.');
+        const credential = new OAuthProvider('apple.com').credential({ idToken: identityToken, rawNonce });
+        await reauthenticateWithCredential(user, credential);
       } else {
         if (!password) throw new Error('비밀번호를 입력해주세요.');
         if (!user.email) throw new Error('재인증에 실패했습니다.');
@@ -234,9 +280,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signInWithGoogle,
+        signInWithApple,
         signOut,
         updateProfile,
         isGoogleAccount,
+        isAppleAccount,
         deleteAccount,
       }}
     >

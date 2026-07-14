@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useGoogleSignIn } from '@/hooks/use-google-sign-in';
+import { useAppleSignIn } from '@/hooks/use-apple-sign-in';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AppColors } from '@/constants/theme';
@@ -23,6 +25,7 @@ import { AppColors } from '@/constants/theme';
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const google = useGoogleSignIn();
+  const apple = useAppleSignIn();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +49,7 @@ export default function LoginScreen() {
     }
   };
 
-  const displayError = error || google.error;
+  const displayError = error || google.error || apple.error;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -65,6 +68,17 @@ export default function LoginScreen() {
             <Text style={styles.appName}>칭찬 마니또</Text>
             <Text style={styles.subtitle}>팀원에게 따뜻한 칭찬을 전해보세요</Text>
           </View>
+
+          {/* 애플 로그인 (iOS 전용) */}
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={12}
+              style={styles.appleButton}
+              onPress={() => { apple.clearError(); apple.signIn(); }}
+            />
+          )}
 
           {/* 구글 로그인 */}
           <TouchableOpacity
@@ -167,6 +181,10 @@ const styles = StyleSheet.create({
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: AppColors.border },
   dividerText: { fontSize: 13, color: AppColors.textSecondary },
+  appleButton: {
+    height: 50,
+    marginBottom: 12,
+  },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',

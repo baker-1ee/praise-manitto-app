@@ -11,9 +11,11 @@ TextInput,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { useAuth } from '@/contexts/auth-context';
 import { useGoogleSignIn } from '@/hooks/use-google-sign-in';
+import { useAppleSignIn } from '@/hooks/use-apple-sign-in';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { AppColors } from '@/constants/theme';
@@ -21,6 +23,7 @@ import { AppColors } from '@/constants/theme';
 export default function RegisterScreen() {
   const { signUp } = useAuth();
   const google = useGoogleSignIn();
+  const apple = useAppleSignIn();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -57,7 +60,7 @@ export default function RegisterScreen() {
     }
   };
 
-  const displayError = error || google.error;
+  const displayError = error || google.error || apple.error;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -75,6 +78,17 @@ export default function RegisterScreen() {
             <Text style={styles.title}>회원가입</Text>
             <Text style={styles.subtitle}>칭찬 마니또에 오신 것을 환영해요!</Text>
           </View>
+
+          {/* 애플 회원가입 (iOS 전용) */}
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={12}
+              style={styles.appleButton}
+              onPress={() => { apple.clearError(); apple.signIn(); }}
+            />
+          )}
 
           {/* 구글 회원가입 */}
           <TouchableOpacity
@@ -174,6 +188,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   subtitle: { fontSize: 14, color: AppColors.textMuted },
+  appleButton: {
+    height: 50,
+    marginBottom: 12,
+  },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
