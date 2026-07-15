@@ -129,6 +129,24 @@ Developer Program은 앱 개수가 아니라 계정(팀) 단위 연 결제라 **
 
 ## 이슈 로그
 
+- **TestFlight 빌드(1.0.13, build 1) 실행 시 즉시 크래시**: `eas build:list`로
+  확인해보니 실제 TestFlight에 제출된 빌드(`392ed8bc`)는 `.env.local`의
+  Firebase/Google 설정값 없이 빌드된 것으로 드러남.
+  - **원인**: `.env.local`이 `.gitignore`에 걸려있고(`.env*.local`) `.easignore`가
+    없어서, EAS가 프로젝트를 클라우드로 업로드할 때 이 파일이 통째로 제외됨.
+    `eas env:list`로 확인한 결과 production/preview/development 어디에도 EAS
+    프로젝트 환경변수가 등록돼 있지 않았음. 그 결과 스토어용 JS 번들에
+    `EXPO_PUBLIC_FIREBASE_*` 등이 전부 `undefined`로 박혀 Firebase 초기화가
+    실패하며 앱이 시작하자마자 크래시.
+  - **dev-client는 왜 멀쩡했나**: `expo start --dev-client`로 로컬 Metro에
+    연결해서 테스트했기 때문에 로컬 디스크의 `.env.local`을 그대로 읽어서
+    문제가 가려짐 — 클라우드에서 미리 번들링된 JS를 그대로 쓰는 TestFlight/
+    App Store 빌드와 달리, dev-client는 로컬 환경변수로 매번 새로 번들링됨.
+  - **조치**: `eas env:create`로 9개 `EXPO_PUBLIC_*` 변수(Firebase 설정 6종 +
+    Google 클라이언트 ID 2종 + measurement ID)를 EAS 프로젝트 환경변수로
+    production/preview/development 전부에 plaintext로 등록. 이 값들은 클라이언트
+    번들에 어차피 노출되는 공개 설정값이라 plaintext로 등록해도 안전함.
+    등록 후 재빌드/재제출 필요 (기존 TestFlight 빌드는 여전히 크래시남).
 - **"You are not registered as an Apple Developer" 에러** (`eas build --platform
   ios` 최초 실행 시): 결제·본인확인을 이미 마쳤는데도 발생. Apple 쪽 등록 처리가
   아직 반영 안 된 시점이어서 난 것으로 보이고, 시간이 지나 Developer Portal
