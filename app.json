@@ -11,6 +11,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "icon": "./assets/images/whale-icon-ios.png",
       "bundleIdentifier": "com.jinung.praise.manitto",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
