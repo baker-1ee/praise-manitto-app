@@ -60,11 +60,22 @@ Apple Developer Program 계정은 배우자 명의로 가입/결제됨:
   - [x] entitlement 반영된 새 빌드 → TestFlight 업로드까지 완료 (본인 계정으로 진행)
   - [x] 실기기(dev-client)에서 실제 Apple 로그인 테스트 완료 — 정상 동작 확인
 - [x] 실기기 개발 워크플로우(dev-client) 구축 완료 — 아래 "실기기 개발 워크플로우" 참고
-- [ ] 개인정보처리방침(`public/privacy-policy.html`)이 실제로 공개 URL로
-      호스팅되고 있는지 확인 — App Store Connect 메타데이터에 필요
-- [ ] App Privacy(데이터 수집) 설문 작성 — Firebase Auth/Firestore, Google
-      Sign-In이 수집하는 항목 기준으로 정리 필요
-- [ ] 심사용 테스트 계정 준비 (소셜 로그인만 있으면 심사관이 못 들어갈 수 있음)
+- [x] 개인정보처리방침 호스팅 확인 — `https://praise-manitto-f7e38.web.app/privacy-policy.html`
+      (Firebase Hosting)로 실제 공개돼 있음을 확인
+- [x] 개인정보처리방침/이용약관에 Apple 로그인 반영 — 기존 문서엔 Google 로그인만
+      명시돼 있어서 수집 항목(Apple 로그인 시 이메일/이름)과 가입 방식(제3조)을
+      갱신하고 Firebase Hosting에 재배포함
+- [x] iOS 앱 아이콘 알파 채널 문제 수정 — `assets/images/whale-icon-ios.png`를
+      알파 채널 없이 새로 만들어 `app.json`의 `ios.icon`에 연결 (알파 채널이
+      있으면 App Store 업로드 자체가 거부됨). Android 적응형 아이콘 원본은
+      투명도가 필요해서 그대로 둠
+- [ ] App Privacy(데이터 수집) 설문 작성 — App Store Connect에서 직접 채워야 함.
+      개인정보처리방침 기준: 이메일 주소, 이름(Google/Apple 로그인), 닉네임/
+      자기소개/아바타(선택), 사용자 콘텐츠(칭찬 메시지), 기기 푸시 토큰
+- [ ] 스크린샷, 앱 설명/키워드/카테고리, 연령 등급, 가격/배포 국가 — 아직 미착수
+- [ ] 심사에 제출할 빌드를 버전에 연결
+- [ ] 심사용 테스트 계정 준비 (소셜 로그인만 있으면 심사관이 못 들어갈 수 있음 —
+      다만 이메일/비밀번호 가입도 가능해서 필수는 아님, 있으면 권장)
 
 ## 실기기 개발 워크플로우 (구축 완료)
 
