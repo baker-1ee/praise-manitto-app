@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn('푸시 토큰 등록 실패', e);
       }
     })();
-  }, [user?.uid, loading, profile?.pushEnabled]);
+  }, [user?.uid, loading, !!profile, profile?.pushEnabled]);
 
   const signIn = async (email: string, password: string) => {
     try {
